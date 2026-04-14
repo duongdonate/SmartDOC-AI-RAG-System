@@ -288,4 +288,11 @@ self.retriever = self.vector_store.as_retriever(
 
 ---
 
+## review screen
+
+![onboarding1](/static/aichathomepage1.png)
+![onboarding1](static/aichathomepage2.png)
+![onboarding1](static/aichatdashboard.png)
+![onboarding1](static/aichatbox.png)
+
 **Chúc bạn sử dụng ứng dụng vui vẻ! 🎉**

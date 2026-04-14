@@ -24,6 +24,7 @@ let messages = [];
 let currentDocument = null;
 let questionHistory = [];
 let isProcessing = false;
+let loadingMessageId = null;  // Lưu ID của message loading
 
 // ========== HELPER FUNCTIONS ==========
 function escapeHtml(text) {
@@ -44,6 +45,29 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+// ========== LOADING INDICATOR FUNCTIONS ==========
+function addTypingIndicator() {
+    loadingMessageId = Date.now().toString();
+    const typingMessage = {
+        id: loadingMessageId,
+        role: "assistant",
+        content: "",
+        isTyping: true,
+        timestamp: getCurrentTimestamp()
+    };
+    messages.push(typingMessage);
+    renderMessages();
+    return loadingMessageId;
+}
+
+function removeTypingIndicator() {
+    if (loadingMessageId) {
+        messages = messages.filter(m => m.id !== loadingMessageId);
+        loadingMessageId = null;
+        renderMessages();
+    }
+}
+
 // ========== RENDER FUNCTIONS ==========
 function renderMessages() {
     if (!messagesContainer) return;
@@ -55,21 +79,36 @@ function renderMessages() {
         messageDiv.setAttribute('data-message-id', message.id);
         messageDiv.setAttribute('data-message-index', index);
         
-        const bubbleDiv = document.createElement('div');
-        bubbleDiv.className = `max-w-2xl ${
-            message.role === 'user'
-                ? 'bg-black text-white'
-                : 'bg-white border border-black text-black'
-        } rounded-2xl px-5 py-3`;
+        // Kiểm tra nếu là typing indicator
+        if (message.isTyping) {
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'bg-white border border-black text-black rounded-2xl px-5 py-3';
+            bubbleDiv.innerHTML = `
+                <div class="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <p class="text-xs mt-2 text-gray-400">${escapeHtml(message.timestamp)}</p>
+            `;
+            messageDiv.appendChild(bubbleDiv);
+        } else {
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = `max-w-2xl ${
+                message.role === 'user'
+                    ? 'bg-black text-white'
+                    : 'bg-white border border-black text-black'
+            } rounded-2xl px-5 py-3`;
+            
+            bubbleDiv.innerHTML = `
+                <p class="whitespace-pre-wrap">${escapeHtml(message.content)}</p>
+                <p class="text-xs mt-2 ${message.role === 'user' ? 'text-gray-300' : 'text-black'}">
+                    ${escapeHtml(message.timestamp)}
+                </p>
+            `;
+            messageDiv.appendChild(bubbleDiv);
+        }
         
-        bubbleDiv.innerHTML = `
-            <p class="whitespace-pre-wrap">${escapeHtml(message.content)}</p>
-            <p class="text-xs mt-2 ${message.role === 'user' ? 'text-gray-300' : 'text-black'}">
-                ${escapeHtml(message.timestamp)}
-            </p>
-        `;
-        
-        messageDiv.appendChild(bubbleDiv);
         messagesContainer.appendChild(messageDiv);
     });
     
@@ -277,19 +316,27 @@ async function askQuestion(question) {
     isProcessing = true;
     sendBtn.disabled = true;
     sendBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    
+    // Thêm câu hỏi của user
     addMessage('user', question);
     
-    const loadingId = Date.now().toString();
-    messages.push({ id: loadingId, role: "assistant", content: "🤔 Đang suy nghĩ...", timestamp: getCurrentTimestamp() });
-    renderMessages();
+    // Thêm typing indicator thay vì dòng chữ "Đang suy nghĩ..."
+    addTypingIndicator();
     
     try {
         const response = await fetch('/api/ask/', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question: question, conversation_id: conversationId })
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                question: question,
+                conversation_id: conversationId 
+            })
         });
+        
         const data = await response.json();
-        messages = messages.filter(m => m.id !== loadingId);
+        
+        // Xóa typing indicator
+        removeTypingIndicator();
         
         if (data.success) {
             let displayAnswer = data.answer;
@@ -307,7 +354,7 @@ async function askQuestion(question) {
             addMessage('assistant', 'Có lỗi xảy ra khi xử lý câu hỏi. Vui lòng thử lại.');
         }
     } catch (error) {
-        messages = messages.filter(m => m.id !== loadingId);
+        removeTypingIndicator();
         console.error('Lỗi hỏi đáp:', error);
         addMessage('assistant', `❌ Lỗi kết nối: ${error.message}`);
     } finally {

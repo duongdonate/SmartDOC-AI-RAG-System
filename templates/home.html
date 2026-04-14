@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/ai-logo.webp">
+    <title>SmartDoc AI - Trang chủ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.4s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+        }
+        
+        .transition-all {
+            transition-property: all;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 300ms;
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-2px);
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-white min-h-screen">
+    <div class="min-h-screen flex items-center justify-center bg-white">
+        <div class="max-w-2xl w-full px-6 animate-fade-in">
+            <div class="text-center mb-12 animate-slide-up">
+                <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-black mb-6">
+                    <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                    </svg>
+                </div>
+                <h1 class="text-4xl md:text-5xl font-bold text-black mb-4">SmartDoc AI</h1>
+                <p class="text-lg text-black max-w-xl mx-auto leading-relaxed">
+                    Trải nghiệm các cuộc trò chuyện thông minh được hỗ trợ bởi công nghệ AI tiên tiến.
+                    Nhận câu trả lời tức thì, hỗ trợ sáng tạo và hiểu biết chuyên sâu.
+                </p>
+            </div>
+
+            <!-- Form nhập tên (ẩn nếu đã có tên) -->
+            <div id="nameFormContainer" class="bg-white rounded-3xl shadow-xl border border-black p-8 animate-slide-up" style="animation-delay: 0.1s;">
+                <form id="chatForm" class="space-y-6">
+                    <div>
+                        <label for="name" class="block mb-3 text-black font-medium">
+                            Tên của bạn là gì?
+                        </label>
+                        <input
+                            id="name"
+                            type="text"
+                            placeholder="Nhập tên của bạn"
+                            class="w-full px-5 py-4 rounded-xl border border-black focus:border-black focus:ring-2 focus:ring-gray-200 outline-none transition-all"
+                            required
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        class="w-full py-4 px-6 bg-black text-white rounded-xl hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl hover-lift flex items-center justify-center gap-2"
+                    >
+                        <span>Bắt đầu trò chuyện</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Nút bắt đầu (hiển thị nếu đã có tên) -->
+            <div id="startBtnContainer" class="bg-white rounded-3xl shadow-xl border border-black p-8 animate-slide-up hidden" style="animation-delay: 0.1s;">
+                <div class="text-center">
+                    <div class="mb-4">
+                        <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+                            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-6" id="welcomeUserName">Chào mừng bạn quay trở lại!</p>
+                    <button
+                        id="startChatBtn"
+                        class="w-full py-4 px-6 bg-black text-white rounded-xl hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl hover-lift flex items-center justify-center gap-2"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                        </svg>
+                        <span>Vào trò chuyện ngay</span>
+                    </button>
+                    <button
+                        id="changeNameBtn"
+                        class="w-full mt-3 py-2 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all text-sm"
+                    >
+                        Đổi tên người dùng
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-12 grid grid-cols-3 gap-6 animate-slide-up" style="animation-delay: 0.2s;">
+                <div class="text-center">
+                    <div class="text-2xl mb-2">⚡</div>
+                    <p class="text-sm text-black font-medium">Phản hồi tức thì</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl mb-2">🎯</div>
+                    <p class="text-sm text-black font-medium">Câu trả lời chính xác</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl mb-2">🔒</div>
+                    <p class="text-sm text-black font-medium">Bảo mật & Riêng tư</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const nameFormContainer = document.getElementById('nameFormContainer');
+        const startBtnContainer = document.getElementById('startBtnContainer');
+        const welcomeUserName = document.getElementById('welcomeUserName');
+        const chatForm = document.getElementById('chatForm');
+        const nameInput = document.getElementById('name');
+        const startChatBtn = document.getElementById('startChatBtn');
+        const changeNameBtn = document.getElementById('changeNameBtn');
+        
+        // Loading state
+        let isLoading = false;
+        
+        // Lấy tên người dùng từ database
+        async function getUserFromDatabase() {
+            try {
+                const response = await fetch('/api/get-user/');
+                const data = await response.json();
+                
+                if (data.success && data.user_name) {
+                    // Đã có tên người dùng trong database
+                    const userName = data.user_name;
+                    welcomeUserName.textContent = `Chào mừng bạn quay trở lại, ${userName}!`;
+                    
+                    // Hiển thị nút bắt đầu, ẩn form nhập tên
+                    nameFormContainer.classList.add('hidden');
+                    startBtnContainer.classList.remove('hidden');
+                    
+                    // Lưu vào localStorage để dùng cho các trang khác
+                    localStorage.setItem('userName', userName);
+                } else {
+                    // Chưa có tên, hiển thị form nhập tên
+                    nameFormContainer.classList.remove('hidden');
+                    startBtnContainer.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Lỗi khi lấy thông tin người dùng:', error);
+                // Nếu lỗi, hiển thị form nhập tên
+                nameFormContainer.classList.remove('hidden');
+                startBtnContainer.classList.add('hidden');
+            }
+        }
+        
+        // Lưu tên người dùng vào database
+        async function saveUserToDatabase(name) {
+            try {
+                const response = await fetch('/api/update-user-name/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name: name })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    localStorage.setItem('userName', name);
+                    return true;
+                } else {
+                    console.error('Lỗi khi lưu tên:', data.error);
+                    return false;
+                }
+            } catch (error) {
+                console.error('Lỗi kết nối:', error);
+                return false;
+            }
+        }
+        
+        // Xử lý form submit (tạo tên mới)
+        if (chatForm) {
+            chatForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                if (isLoading) return;
+                
+                const name = nameInput.value.trim();
+                
+                if (!name) {
+                    // Hiệu ứng rung nếu chưa nhập tên
+                    nameInput.classList.add('border-red-500');
+                    nameInput.style.animation = 'shake 0.5s';
+                    setTimeout(() => {
+                        nameInput.classList.remove('border-red-500');
+                        nameInput.style.animation = '';
+                    }, 500);
+                    return;
+                }
+                
+                // Disable button và hiển thị loading
+                isLoading = true;
+                const submitBtn = chatForm.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<div class="spinner"></div> Đang xử lý...';
+                submitBtn.disabled = true;
+                
+                // Lưu tên vào database
+                const success = await saveUserToDatabase(name);
+                
+                if (success) {
+                    // Chuyển hướng đến dashboard
+                    window.location.href = '/dashboard';
+                } else {
+                    alert('Có lỗi xảy ra, vui lòng thử lại!');
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                    isLoading = false;
+                }
+            });
+        }
+        
+        // Nút bắt đầu trò chuyện (khi đã có tên)
+        if (startChatBtn) {
+            startChatBtn.addEventListener('click', function() {
+                window.location.href = '/dashboard';
+            });
+        }
+        
+        // Nút đổi tên
+        if (changeNameBtn) {
+            changeNameBtn.addEventListener('click', function() {
+                // Hiển thị form nhập tên, ẩn nút bắt đầu
+                nameFormContainer.classList.remove('hidden');
+                startBtnContainer.classList.add('hidden');
+                nameInput.value = '';
+                nameInput.focus();
+            });
+        }
+        
+        // Thêm hiệu ứng rung (shake)
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+                20%, 40%, 60%, 80% { transform: translateX(5px); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Kiểm tra tên người dùng khi trang tải
+        getUserFromDatabase();
+    </script>
+</body>
+</html>

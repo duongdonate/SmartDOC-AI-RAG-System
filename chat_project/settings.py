@@ -125,7 +125,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Ollama configuration
 OLLAMA_BASE_URL = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
-OLLAMA_MODEL = 'qwen2.5:1.5b'
+OLLAMA_MODEL = 'qwen2.5:7b'
 
 # Session settings for storing chat history
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'

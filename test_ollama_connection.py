@@ -11,7 +11,7 @@ def test_direct_api():
         response = requests.post(
             'http://localhost:11434/api/generate',
             json={
-                'model': 'qwen2.5:1.5b',
+                'model': 'qwen2.5:7b',
                 'prompt': 'Say "Hello"',
                 'stream': False
             },
@@ -32,7 +32,7 @@ def test_langchain_ollama():
     print("\n2. Testing LangChain Ollama integration...")
     try:
         llm = Ollama(
-            model="qwen2.5:1.5b",
+            model="qwen2.5:7b",
             base_url="http://localhost:11434",
             temperature=0.7
         )

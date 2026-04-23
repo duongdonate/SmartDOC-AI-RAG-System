@@ -17,6 +17,7 @@ class DatabaseService:
         if conversation:
             return conversation.total_messages == 0
         return False
+    
     @staticmethod
     def set_name_conversation(conversation_id, name):
         """Đặt tên cho hội thoại"""

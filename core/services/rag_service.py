@@ -14,11 +14,12 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_core.documents import Document
+from typer.cli import docs
 
 logger = logging.getLogger(__name__)
 
 class RAGService:
-    """RAGService tối ưu cho qwen2.5:1.5b - Hỗ trợ PDF, DOCX và tùy chỉnh Chunk Strategy"""
+    """RAGService tối ưu cho qwen2.5:7b - Hỗ trợ PDF, DOCX và tùy chỉnh Chunk Strategy"""
 
     def __init__(self):
         self.vector_store = None
@@ -32,33 +33,33 @@ class RAGService:
         self.current_file_name = None
         
         # Cấu hình chunk mặc định
-        self.chunk_size = 900
-        self.chunk_overlap = 80
+        self.chunk_size = 700
+        self.chunk_overlap = 100
 
         self._init_embedding_model()
         self._init_llm()
 
     def _init_embedding_model(self):
         self.embedding_model = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-MiniLM-L6-v2",
+            model_name="sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
             model_kwargs={'device': 'cpu'},
-            encode_kwargs={'normalize_embeddings': True, 'batch_size': 64}
+            encode_kwargs={'normalize_embeddings': True}
         )
         print("✓ Embedding model (nhẹ) sẵn sàng")
 
     def _init_llm(self):
         """Cấu hình 1.5B tối ưu tốc độ + tự nhiên"""
         self.llm = Ollama(
-            model="qwen2.5:1.5b",
+            model="qwen2.5:7b",
             base_url="http://localhost:11434",
-            temperature=0.35,
-            top_p=0.88,
-            repeat_penalty=1.12,
-            num_predict=380,
-            num_ctx=1536,
-            num_thread=4,
+            temperature=0.3,               # Độ sáng tạo của câu trả lời 
+            top_p=0.9,                     # Nucleus sampling để lọc các từ có xác suất thấp 
+            num_thread=8,
+            num_gpu=100,                   # Sử dụng GPU nếu có, tự động fallback CPU nếu không 
+            num_ctx=2048,                  # Tăng context window để xử lý tốt hơn các tài liệu dài 
+            repeat_penalty=1.1             # Hạn chế việc mô hình bị lặp từ trong câu trả lời 
         )
-        print("✓ Ollama qwen2.5:1.5b đã tối ưu tốc độ")
+        print("✓ Ollama qwen2.5:7b đã tối ưu tốc độ")
 
     def _get_file_type(self, file_name: str) -> str:
         """Xác định loại file dựa trên phần mở rộng"""
@@ -140,24 +141,30 @@ class RAGService:
 
             self.retriever = self.vector_store.as_retriever(
                 search_type="similarity",
-                search_kwargs={"k": 2}
+                search_kwargs={"k": 3}
             )
 
-            prompt_template = """Bạn là trợ lý thân thiện, trả lời ngắn gọn nhưng đầy đủ và tự nhiên bằng tiếng Việt.
+            prompt_template = """
+            Bạn là một chuyên gia phân tích tài liệu chuyên nghiệp.
+            Nhiệm vụ của bạn là trả lời câu hỏi của người dùng DỰA VÀO DUY NHẤT ngữ cảnh (Context) được cung cấp dưới đây.
 
-YÊU CẦU RẤT QUAN TRỌNG:
-- Trả lời đúng và trực tiếp vào câu hỏi
-- Độ dài: 3-5 câu (khoảng 100-150 từ), không được quá ngắn
-- Dùng thông tin từ ngữ cảnh nếu có và có thể bổ sung thêm kiến thức chung để trả lời tự nhiên hơn
-- Nếu không có thông tin liên quan, hãy trả lời tự nhiên dựa trên kiến thức chung, logic và hữu ích
-- Viết mạch lạc, gần gũi như đang nói chuyện
+            Context:
+            {context}
 
-Ngữ cảnh:
-{context}
+            Question:
+            {question}
 
-Câu hỏi: {question}
+            🚨 CÁC QUY TẮC BẮT BUỘC PHẢI TUÂN THỦ (NẾU VI PHẠM SẼ BỊ PHẠT):
+            1. NGÔN NGỮ: BẠN PHẢI LUÔN LUÔN TRẢ LỜI BẰNG TIẾNG VIỆT (VIETNAMESE). TUYỆT ĐỐI KHÔNG ĐƯỢC SỬ DỤNG TIẾNG TRUNG HOẶC BẤT KỲ NGÔN NGỮ NÀO KHÁC.
+            2. SỰ THẬT: Chỉ sử dụng thông tin xuất hiện trong phần Context. Nếu phần Context không chứa câu trả lời cho câu hỏi, bạn PHẢI trả lời chính xác là: "Xin lỗi, tài liệu không đề cập đến thông tin này."
+            3. KHÔNG BỊA ĐẶT: Tuyệt đối không được tự suy diễn, không được dùng kiến thức bên ngoài Context để trả lời.
 
-Trả lời ngay (3-5 câu, tự nhiên): """
+            🚨 QUY TẮC ĐỊNH DẠNG TOÁN HỌC:
+            - Nếu có công thức toán học, bạn PHẢI sử dụng LaTeX.
+            - Sử dụng cặp dấu $$ cho công thức hiển thị riêng biệt
+            - Chỉ Sử dụng cặp dấu $ cho công thức nằm trong dòng văn bản
+            - TUYỆT ĐỐI KHÔNG dùng các ký hiệu như \[ \] hoặc \( \).
+            """
 
             prompt = PromptTemplate(
                 template=prompt_template,
@@ -165,14 +172,13 @@ Trả lời ngay (3-5 câu, tự nhiên): """
             )
 
             def format_docs(docs: List[Document]) -> str:
+            # Nếu không có tài liệu, trả về câu mặc định
                 if not docs:
                     return "Không có thông tin liên quan trong tài liệu."
-                formatted = []
-                for doc in docs[:2]:
-                    content = doc.page_content[:420]
-                    page_num = doc.metadata.get('page', '?')
-                    formatted.append(f"[Trang {page_num}] {content}")
-                return "\n\n".join(formatted)
+    
+            # Chỉ lấy đúng nội dung chữ (page_content) của tất cả các docs trả về
+            # Không cắt xén, không gắn thêm Metadata hay ký hiệu [Trang X]
+                return "\n\n".join(doc.page_content for doc in docs)
 
             self.chain = (
                 {
@@ -183,6 +189,7 @@ Trả lời ngay (3-5 câu, tự nhiên): """
                 | self.llm
                 | StrOutputParser()
             )
+            
 
             self.current_file_type = file_type
             self.current_file_name = file_name
@@ -219,7 +226,10 @@ Trả lời ngay (3-5 câu, tự nhiên): """
                 return self.cache[cache_key]
 
         try:
+            # Print retriever object
+
             source_docs = self.retriever.invoke(question)
+            
             answer = self.chain.invoke(question)
 
             if len(answer.split()) < 45:

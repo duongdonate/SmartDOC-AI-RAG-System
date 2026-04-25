@@ -4,6 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from ..services.db_service import DatabaseService
+from ..services.rag_service import rag_service
 
 
 @require_http_methods(["GET"])
@@ -18,7 +19,7 @@ def get_conversations(request):
             'id': conv.id,
             'title': conv.title,
             'last_question': conv.last_question,
-            'last_updated': conv.last_updated.strftime('%H:%M %d/%m/%Y'),
+            'last_updated': conv.get_last_updated_local().strftime('%H:%M %d/%m/%Y'),
             'total_messages': conv.total_messages,
             'total_documents': conv.total_documents
         })
@@ -99,6 +100,7 @@ def delete_conversation(request):
             return JsonResponse({'error': 'Conversation not found'}, status=404)
         
         DatabaseService.clear_all_documents(conversation_id)
+        rag_service.clear_persisted_index(conversation_id)
         conversation.delete()
         
         return JsonResponse({

@@ -24,7 +24,7 @@ def get_chunk_config(request):
 @csrf_exempt
 @require_http_methods(["POST"])
 def update_chunk_config(request):
-    """Cập nhật cấu hình chunk và reprocess tài liệu"""
+    """Cập nhật cấu hình chunk và reprocess TẤT CẢ tài liệu"""
     try:
         data = json.loads(request.body)
         chunk_size = data.get('chunk_size')
@@ -38,28 +38,34 @@ def update_chunk_config(request):
         
         if conversation_id:
             from core.models import Document
+            # Lấy tất cả documents
             documents = Document.objects.filter(conversation_id=conversation_id, is_active=True)
+            
             if documents.exists():
-                doc = documents.first()
-                with open(doc.file_path, 'rb') as f:
-                    file_content = ContentFile(f.read(), name=doc.file_name)
-                    success = rag_service.process_document_with_config(
-                        file_content, 
-                        doc.file_name,
-                        chunk_size=int(chunk_size),
-                        chunk_overlap=int(chunk_overlap)
-                    )
-                    if success:
-                        return JsonResponse({
-                            'success': True,
-                            'message': f'Đã cập nhật cấu hình và xử lý lại tài liệu',
-                            'chunk_size': chunk_size,
-                            'chunk_overlap': chunk_overlap
-                        })
+                file_paths = [doc.file_path for doc in documents]
+                file_names = [doc.file_name for doc in documents]
+                
+                # Băm lại dữ liệu bằng config mới
+                success = rag_service.process_multiple_files(
+                    file_paths=file_paths, 
+                    file_names=file_names
+                )
+                
+                if success:
+                    # Lưu đè lại bản index mới
+                    rag_service._save_vectorstore(int(conversation_id), file_paths)
+                    return JsonResponse({
+                        'success': True,
+                        'message': f'Đã cập nhật cấu hình và xử lý lại {len(documents)} tài liệu',
+                        'chunk_size': chunk_size,
+                        'chunk_overlap': chunk_overlap
+                    })
+                else:
+                    return JsonResponse({'error': 'Cập nhật chunk thành công nhưng lỗi khi xử lý lại file'}, status=500)
         
         return JsonResponse({
             'success': True,
-            'message': 'Đã cập nhật cấu hình chunk',
+            'message': 'Đã cập nhật cấu hình chunk (chưa áp dụng file nào)',
             'chunk_size': chunk_size,
             'chunk_overlap': chunk_overlap
         })

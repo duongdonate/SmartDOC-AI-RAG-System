@@ -9,7 +9,7 @@ urlpatterns = [
     path('chat/<int:conversation_id>/', views.chat, name='chat_with_id'),
     
     # Document API
-    path('api/upload/', views.upload_pdf, name='upload_pdf'),
+    path('api/upload/', views.upload_document, name='upload_pdf'),
     path('api/load-document/', views.load_document, name='load_document'),
     path('api/clear-document/', views.clear_document, name='clear_document'),
     

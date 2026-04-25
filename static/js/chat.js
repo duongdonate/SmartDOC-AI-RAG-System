@@ -21,7 +21,7 @@ const chunkStatus = document.getElementById("chunkStatus");
 
 // ========== STATE ==========
 let messages = [];
-let currentDocument = null;
+let currentDocuments = [];
 let questionHistory = [];
 let isProcessing = false;
 let loadingMessageId = null; // Lưu ID của message loading
@@ -51,10 +51,11 @@ function escapeHtml(text) {
 }
 
 function getCurrentTimestamp() {
-  return new Date().toLocaleTimeString([], {
+  return new Intl.DateTimeFormat("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh",
     hour: "2-digit",
     minute: "2-digit",
-  });
+  }).format(new Date());
 }
 
 function formatFileSize(bytes) {
@@ -150,42 +151,48 @@ function addMessage(role, content, messageId = null) {
 function renderDocuments() {
   if (!documentsList) return;
 
-  if (currentDocument) {
+  // Sử dụng biến mảng currentDocuments thay vì currentDocument đơn lẻ
+  if (currentDocuments && currentDocuments.length > 0) {
     if (noDocumentsMsg) noDocumentsMsg.style.display = "none";
 
-    const fileExt =
-      currentDocument.name?.split(".").pop().toLowerCase() || "pdf";
-    const isDocx = fileExt === "docx";
-    const bgColor = isDocx ? "bg-blue-600" : "bg-green-600";
-    const borderColor = isDocx ? "border-blue-500" : "border-green-500";
-    const bgLight = isDocx ? "bg-blue-50" : "bg-green-50";
-    const fileTypeDisplay = isDocx ? "DOCX" : "PDF";
+    // Lặp qua từng file để vẽ UI
+    currentDocuments.forEach((doc) => {
+      const fileExt = doc.name?.split(".").pop().toLowerCase() || "pdf";
+      const isDocx = fileExt === "docx";
+      const bgColor = isDocx ? "bg-blue-600" : "bg-green-600";
+      const borderColor = isDocx ? "border-blue-500" : "border-green-500";
+      const bgLight = isDocx ? "bg-blue-50" : "bg-green-50";
+      const fileTypeDisplay = isDocx ? "DOCX" : "PDF";
 
-    const fileIcon = isDocx
-      ? `<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>`
-      : `<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>`;
+      const fileIcon = isDocx
+        ? `<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>`
+        : `<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>`;
 
-    documentsList.innerHTML = `
-            <div class="p-4 rounded-lg border ${borderColor} ${bgLight} document-animation">
-                <div class="flex items-start gap-3">
-                    <div class="w-10 h-10 rounded-lg ${bgColor} flex items-center justify-center flex-shrink-0">
-                        ${fileIcon}
+      // Dùng += để thêm (append) từng thẻ div vào danh sách.
+      // Tui thêm margin-bottom (mb-3) để các tài liệu cách nhau ra cho đẹp.
+      // Tui cũng thêm thuộc tính title vào tên file để user hover chuột có thể đọc được tên đầy đủ nếu bị truncate
+      documentsList.innerHTML += `
+        <div class="p-4 mb-3 rounded-lg border ${borderColor} ${bgLight} document-animation">
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-lg ${bgColor} flex items-center justify-center flex-shrink-0">
+                    ${fileIcon}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium truncate mb-1 text-gray-900" title="${escapeHtml(doc.name)}">${escapeHtml(doc.name)}</p>
+                    <div class="flex items-center justify-between text-xs text-gray-600">
+                        <span>${fileTypeDisplay}</span>
+                        <span>${escapeHtml(doc.size)}</span>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium truncate mb-1 text-gray-900">${escapeHtml(currentDocument.name)}</p>
-                        <div class="flex items-center justify-between text-xs text-gray-600">
-                            <span>${fileTypeDisplay}</span>
-                            <span>${escapeHtml(currentDocument.size)}</span>
-                        </div>
-                        <div class="mt-2 text-xs ${isDocx ? "text-blue-600" : "text-green-600"}">✓ Đã sẵn sàng</div>
-                    </div>
+                    <div class="mt-2 text-xs ${isDocx ? "text-blue-600" : "text-green-600"}">✓ Đã sẵn sàng</div>
                 </div>
             </div>
-        `;
+        </div>
+      `;
+    });
   } else {
     if (noDocumentsMsg) noDocumentsMsg.style.display = "block";
     documentsList.innerHTML = "";
-    documentsList.appendChild(noDocumentsMsg);
+    if (noDocumentsMsg) documentsList.appendChild(noDocumentsMsg);
   }
 }
 
@@ -254,124 +261,64 @@ async function loadRecentQuestions() {
   }
 }
 
+// Đổi tên hàm thành số nhiều cho chuẩn nhé, nhớ cập nhật chỗ gọi hàm này (ví dụ trong window.onload)
 async function loadExistingDocument() {
   if (initialDocuments && initialDocuments.length > 0) {
-    const doc = initialDocuments[0];
-    const fileExt = doc.name?.split(".").pop().toLowerCase() || "pdf";
-    const fileTypeDisplay = fileExt === "docx" ? "DOCX" : "PDF";
+    const fileCount = initialDocuments.length;
 
     addMessage(
       "assistant",
-      `📄 Đang tải lại ${fileTypeDisplay} "${doc.name}"...`,
+      `📄 Đang tải lại ${fileCount} tài liệu vào bộ nhớ...`,
     );
 
     try {
       const response = await fetch("/api/load-document/", {
+        // Đảm bảo URL khớp với urls.py của bạn
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversation_id: conversationId,
-          document_id: doc.id,
+          // Không cần gửi document_id nữa vì backend đã quét toàn bộ theo conversation_id
         }),
       });
       const data = await response.json();
 
       if (data.success) {
-        currentDocument = {
+        // Gán toàn bộ danh sách file vào biến mảng hiện tại
+        currentDocuments = initialDocuments.map((doc) => ({
           name: doc.name,
-          size: doc.size,
-          uploadedAt: doc.uploaded_at,
-        };
+          size: doc.size, // Nhớ format dung lượng nếu backend chưa format
+          uploadedAt: doc.uploaded_at || new Date().toLocaleString(),
+        }));
+
         renderDocuments();
+
         addMessage(
           "assistant",
-          `✅ Đã tải lại ${fileTypeDisplay} "${doc.name}". Bạn có thể tiếp tục đặt câu hỏi.`,
+          `✅ Đã tải lại thành công ${fileCount} tài liệu. Bạn có thể tiếp tục đặt câu hỏi.`,
         );
       } else {
         addMessage(
           "assistant",
-          `⚠️ Không thể tải lại ${fileTypeDisplay}. Vui lòng tải lên lại file.`,
+          `⚠️ Không thể tải lại tài liệu. Lỗi: ${data.error || "Vui lòng tải lên lại file."}`,
         );
-        currentDocument = null;
+        currentDocuments = []; // Đặt lại thành mảng rỗng
         renderDocuments();
       }
     } catch (error) {
-      console.error("Lỗi tải lại document:", error);
+      console.error("Lỗi tải lại documents:", error);
       addMessage(
         "assistant",
         `⚠️ Lỗi kết nối khi tải lại tài liệu. Vui lòng tải lên lại file.`,
       );
-      currentDocument = null;
+      currentDocuments = []; // Đặt lại thành mảng rỗng
       renderDocuments();
     }
-  }
-}
-
-async function uploadFile(file) {
-  const fileExt = file.name.split(".").pop().toLowerCase();
-  if (fileExt !== "pdf" && fileExt !== "docx") {
-    alert("Chỉ hỗ trợ file PDF hoặc DOCX");
-    return;
-  }
-
-  if (currentDocument) {
-    if (
-      !confirm(
-        `Bạn đã có tài liệu "${currentDocument.name}". Tải lên file mới sẽ thay thế tài liệu hiện tại. Bạn có muốn tiếp tục?`,
-      )
-    ) {
-      return;
-    }
-  }
-
-  const formData = new FormData();
-  formData.append("pdf_file", file);
-  formData.append("conversation_id", conversationId);
-
-  const fileTypeDisplay = fileExt === "docx" ? "DOCX" : "PDF";
-  addMessage(
-    "assistant",
-    `📄 Đang xử lý ${fileTypeDisplay} "${file.name}" (${formatFileSize(file.size)})...`,
-  );
-
-  uploadBtn.disabled = true;
-  uploadBtn.classList.add("opacity-50", "cursor-not-allowed");
-
-  try {
-    const response = await fetch("/api/upload/", {
-      method: "POST",
-      body: formData,
-    });
-    const data = await response.json();
-
-    if (data.success) {
-      currentDocument = {
-        name: data.filename,
-        size: data.file_size || formatFileSize(file.size),
-        uploadedAt: new Date().toLocaleString(),
-      };
-      renderDocuments();
-      addMessage(
-        "assistant",
-        `✅ ${data.message}\n\nBạn có thể bắt đầu đặt câu hỏi về nội dung ${fileTypeDisplay} này.`,
-      );
-    } else {
-      addMessage(
-        "assistant",
-        `❌ Lỗi: ${data.error || "Không thể xử lý file. Vui lòng thử lại."}`,
-      );
-    }
-  } catch (error) {
-    console.error("Lỗi upload:", error);
-    addMessage("assistant", `❌ Lỗi kết nối: ${error.message}`);
-  } finally {
-    uploadBtn.disabled = false;
-    uploadBtn.classList.remove("opacity-50", "cursor-not-allowed");
   }
 }
 
 async function askQuestion(question) {
-  if (!currentDocument) {
+  if (!currentDocuments || currentDocuments.length === 0) {
     addMessage(
       "assistant",
       "⚠️ Vui lòng tải lên một file PDF hoặc DOCX trước khi đặt câu hỏi.",
@@ -410,19 +357,7 @@ async function askQuestion(question) {
     removeTypingIndicator();
 
     if (data.success) {
-      let displayAnswer = data.answer;
-      if (data.sources && data.sources.length > 0) {
-        displayAnswer += "\n\n📚 **Nguồn tham khảo:**";
-        data.sources.forEach((source, idx) => {
-          const pageInfo = source.page_number
-            ? ` (Trang ${source.page_number})`
-            : "";
-          const typeInfo = source.file_type
-            ? ` [${source.file_type.toUpperCase()}]`
-            : "";
-          displayAnswer += `\n${idx + 1}.${typeInfo}${pageInfo}: "${source.content.substring(0, 100)}..."`;
-        });
-      }
+      let displayAnswer = data.full_answer;
       addMessage("assistant", displayAnswer);
       await loadRecentQuestions();
     } else {
@@ -456,9 +391,10 @@ async function clearHistory() {
           {
             id: "1",
             role: "assistant",
-            content: currentDocument
-              ? "Lịch sử trò chuyện đã được xóa. Bạn có thể tiếp tục đặt câu hỏi về tài liệu hiện tại."
-              : "Lịch sử trò chuyện đã được xóa. Vui lòng tải lên tài liệu để bắt đầu.",
+            content:
+              currentDocuments && currentDocuments.length > 0
+                ? "Lịch sử trò chuyện đã được xóa. Bạn có thể tiếp tục đặt câu hỏi về tài liệu hiện tại."
+                : "Lịch sử trò chuyện đã được xóa. Vui lòng tải lên tài liệu để bắt đầu.",
             timestamp: getCurrentTimestamp(),
           },
         ];
@@ -486,7 +422,7 @@ async function clearDocument() {
       });
       const data = await response.json();
       if (data.success) {
-        currentDocument = null;
+        currentDocuments = [];
         renderDocuments();
         messages = [
           {
@@ -556,7 +492,7 @@ async function applyChunkConfig() {
       chunkStatus.textContent = "✅ " + data.message;
       chunkStatus.classList.add("text-green-600");
       setTimeout(() => chunkStatus.classList.add("hidden"), 3000);
-      if (currentDocument) {
+      if (currentDocuments && currentDocuments.length > 0) {
         addMessage(
           "assistant",
           `⚙️ Đã cập nhật cấu hình chunk: size=${newChunkSize}, overlap=${newChunkOverlap}. Tài liệu đã được xử lý lại.`,
@@ -585,13 +521,15 @@ async function resetChunkConfig() {
 
 // ========== CHECK STATUS ==========
 async function checkStatus() {
+  console.log("Initial documents from backend:", initialDocuments);
   if (initialDocuments && initialDocuments.length > 0) {
     await loadExistingDocument();
   } else {
-    currentDocument = null;
+    currentDocuments = [];
     renderDocuments();
   }
 
+  console.log("Initial messages from backend:", initialMessages);
   if (initialMessages && initialMessages.length > 0) {
     messages = initialMessages.map((msg) => ({
       id: msg.id,
@@ -600,7 +538,11 @@ async function checkStatus() {
       timestamp: msg.timestamp,
     }));
     renderMessages();
-  } else if (messages.length === 0 && !currentDocument) {
+  } else if (
+    messages.length === 0 &&
+    !currentDocuments &&
+    !currentDocuments.length > 0
+  ) {
     addMessage(
       "assistant",
       "Xin chào! Tôi là trợ lý AI. Vui lòng tải lên một file PDF hoặc DOCX trước, sau đó bạn có thể đặt câu hỏi về nội dung của nó.",
@@ -631,14 +573,118 @@ uploadBtn?.addEventListener(
   () => !uploadBtn.disabled && fileInput.click(),
 );
 fileInput?.addEventListener("change", async (e) => {
-  const file = e.target.files[0];
-  if (file) {
-    const fileExt = file.name.split(".").pop().toLowerCase();
-    if (fileExt === "pdf" || fileExt === "docx") await uploadFile(file);
-    else alert("Chỉ hỗ trợ file PDF hoặc DOCX");
+  // Chuyển e.target.files (FileList) thành một Array chuẩn để dễ thao tác
+  const files = Array.from(e.target.files);
+
+  if (files.length > 0) {
+    const validFiles = [];
+    const invalidFiles = [];
+
+    // Kiểm tra đuôi file cho TẤT CẢ các file được chọn
+    files.forEach((file) => {
+      const fileExt = file.name.split(".").pop().toLowerCase();
+      if (fileExt === "pdf" || fileExt === "docx") {
+        validFiles.push(file);
+      } else {
+        invalidFiles.push(file.name);
+      }
+    });
+
+    // Nếu có file sai định dạng, cảnh báo cho user
+    if (invalidFiles.length > 0) {
+      alert(
+        `⚠️ Các file sau không hợp lệ (chỉ hỗ trợ PDF, DOCX):\n${invalidFiles.join(", ")}`,
+      );
+    }
+
+    // Tiến hành upload những file hợp lệ
+    if (validFiles.length > 0) {
+      // Đổi tên hàm thành uploadFiles (số nhiều) cho chuẩn ý nghĩa nhé
+      await uploadFiles(validFiles);
+    }
   }
+
+  // Reset input để user có thể chọn lại đúng file đó nếu muốn
   fileInput.value = "";
 });
+
+async function uploadFiles(filesArray) {
+  if (!filesArray || filesArray.length === 0) return;
+
+  // 1. Kiểm tra ghi đè tài liệu cũ
+  // Tui khuyên bạn nên đổi biến toàn cục `currentDocument` thành `currentDocuments` (dạng mảng [])
+  // Nhưng tui viết code dự phòng ở đây để lỡ bạn chưa đổi thì nó vẫn chạy được.
+
+  // 2. Chuẩn bị FormData (quan trọng nhất)
+  const formData = new FormData();
+  let totalSize = 0;
+
+  // Lặp qua mảng file để append vào cùng 1 key 'files'
+  filesArray.forEach((file) => {
+    formData.append("files", file);
+    totalSize += file.size;
+  });
+  formData.append("conversation_id", conversationId);
+
+  // 3. Hiển thị UI đang xử lý
+  addMessage(
+    "assistant",
+    `📄 Đang xử lý ${filesArray.length} tài liệu (Tổng dung lượng: ${formatFileSize(totalSize)})...`,
+  );
+
+  uploadBtn.disabled = true;
+  uploadBtn.classList.add("opacity-50", "cursor-not-allowed");
+
+  try {
+    // Lưu ý: Đảm bảo URL này khớp với URL bạn định nghĩa trong file urls.py của Django
+    const response = await fetch("/api/upload/", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await response.json();
+
+    if (data.success) {
+      // 4. Cập nhật lại State hiển thị
+      // Nếu bạn đã đổi thành mảng currentDocuments
+      if (typeof currentDocuments !== "undefined") {
+        currentDocuments = filesArray.map((f) => ({
+          name: f.name,
+          size: formatFileSize(f.size),
+          uploadedAt: new Date().toLocaleString(),
+        }));
+      } else {
+        // Fallback: nếu bạn vẫn giữ biến currentDocument (1 object)
+        currentDocuments = {
+          name: data.file_names
+            ? data.file_names.join(", ")
+            : `${filesArray.length} tài liệu`,
+          size: data.total_size || formatFileSize(totalSize),
+          uploadedAt: new Date().toLocaleString(),
+        };
+      }
+
+      // Cập nhật giao diện danh sách file bên Sidebar
+      if (typeof renderDocuments === "function") renderDocuments();
+
+      addMessage(
+        "assistant",
+        `✅ ${data.message}\n\nBạn có thể bắt đầu đặt câu hỏi về nội dung các tài liệu này.`,
+      );
+    } else {
+      addMessage(
+        "assistant",
+        `❌ Lỗi: ${data.error || "Không thể xử lý file. Vui lòng thử lại."}`,
+      );
+    }
+  } catch (error) {
+    console.error("Lỗi upload:", error);
+    addMessage("assistant", `❌ Lỗi kết nối: ${error.message}`);
+  } finally {
+    // 5. Mở khóa nút upload
+    uploadBtn.disabled = false;
+    uploadBtn.classList.remove("opacity-50", "cursor-not-allowed");
+  }
+}
 
 clearHistoryBtn?.addEventListener("click", clearHistory);
 clearDocumentBtn?.addEventListener("click", clearDocument);

@@ -1,183 +1,361 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/x-icon" href="/static/ai-logo.webp">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/x-icon" href="/static/ai-logo.webp" />
     <title>Trò chuyện - AI Chat</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/static/css/chat.css">
-</head>
-<body class="h-screen flex flex-col bg-white overflow-hidden  bg-gradient-to-br from-blue-100 via-purple-50 to-pink-100">
+    <link rel="stylesheet" href="/static/css/chat.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css"
+    />
+  </head>
+  <body
+    class="h-screen flex flex-col bg-white overflow-hidden bg-gradient-to-br from-blue-100 via-purple-50 to-pink-100"
+  >
     <!-- Header -->
-    <header class="bg-white border-b border-black px-6 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-4">
-            <button onclick="window.location.href='/dashboard'" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-            </button>
-            <div>
-                <h1 class="text-lg font-semibold text-black">{{ conversation_title }}</h1>
-                <p class="text-sm text-black">Hỏi tôi bất cứ điều gì</p>
-            </div>
+    <header
+      class="bg-white border-b border-black px-6 py-4 flex items-center justify-between"
+    >
+      <div class="flex items-center gap-4">
+        <button
+          onclick="window.location.href = '/dashboard'"
+          class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <svg
+            class="w-5 h-5 text-black"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"
+            ></path>
+          </svg>
+        </button>
+        <div>
+          <h1 class="text-lg font-semibold text-black">
+            {{ conversation_title }}
+          </h1>
+          <p class="text-sm text-black">Hỏi tôi bất cứ điều gì</p>
         </div>
+      </div>
     </header>
 
     <!-- Main Content -->
     <div class="flex-1 flex overflow-hidden">
-        <!-- Left Sidebar -->
-        <aside class="w-64 bg-white border-r border-black flex flex-col">
-            <!-- CHUNK CONFIGURATION SECTION -->
-            <div class="px-4 py-4 border-b border-black">
-                <div class="flex items-center justify-between mb-3">
-                    <h2 class="text-sm font-semibold text-black">Cấu hình Chunk</h2>
-                    <button id="resetChunkBtn" class="text-xs text-gray-500 hover:text-black transition-colors" title="Khôi phục mặc định (900/80)">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                        </svg>
-                    </button>
-                </div>
-                
-                <div class="mb-4">
-                    <div class="flex justify-between text-xs text-gray-600 mb-1">
-                        <span>Chunk Size</span>
-                        <span id="chunkSizeValue" class="font-medium text-black">900</span>
-                    </div>
-                    <input type="range" id="chunkSizeSlider" min="600" max="1500" step="100" value="900"
-                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                    <div class="flex justify-between text-xs text-gray-400 mt-1">
-                        <span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
-                        <span>11</span><span>12</span><span>13</span><span>14</span><span>15</span>
-                    </div>
-                </div>
-                
-                <div class="mb-4">
-                    <div class="flex justify-between text-xs text-gray-600 mb-1">
-                        <span>Chunk Overlap</span>
-                        <span id="chunkOverlapValue" class="font-medium text-black">80</span>
-                    </div>
-                    <input type="range" id="chunkOverlapSlider" min="50" max="150" step="10" value="80"
-                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                    <div class="flex justify-between text-xs text-gray-400 mt-1">
-                        <span>50</span><span>60</span><span>70</span><span>80</span><span>90</span>
-                        <span>100</span><span>110</span><span>120</span><span>130</span><span>140</span><span>150</span>
-                    </div>
-                </div>
-                
-                <div class="relative group">
-                    <button id="applyChunkBtn" class="w-full py-2 px-4 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm flex items-center justify-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        Áp dụng & Xử lý lại
-                    </button>
-                    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-2 bg-yellow-100 border border-yellow-400 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                        <div class="flex items-start gap-2">
-                            <svg class="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                            </svg>
-                            <div class="text-xs text-yellow-800">
-                                <p class="font-semibold mb-1">⚠️ Lưu ý khi thay đổi:</p>
-                                <ul class="list-disc list-inside space-y-1">
-                                    <li>Thay đổi sẽ <strong>xử lý lại toàn bộ tài liệu</strong></li>
-                                    <li>Chunk size càng lớn → giữ ngữ cảnh tốt hơn nhưng <strong>chậm hơn</strong></li>
-                                    <li>Chunk overlap càng lớn → tránh mất thông tin ở ranh giới</li>
-                                    <li>Quá trình này có thể mất <strong>10-30 giây</strong> tùy dung lượng file</li>
-                                </ul>
-                            </div>
-                        </div>
-                        <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                            <div class="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-yellow-400"></div>
-                        </div>
-                    </div>
-                </div>
-                <p id="chunkStatus" class="text-xs text-gray-500 mt-2 text-center hidden"></p>
-            </div>
-            
-            <!-- Recent Questions Section -->
-            <div class="px-4 py-4 border-b border-black flex justify-between items-center">
-                <h2 class="text-sm font-semibold text-black">Câu hỏi gần đây</h2>
-                <button id="refreshQuestionsBtn" class="text-xs text-gray-500 hover:text-black transition-colors" title="Làm mới">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                    </svg>
-                </button>
-            </div>
-            <div id="questionsList" class="flex-1 overflow-y-auto p-4 space-y-2">
-                <div class="text-center text-gray-500 text-sm py-8">Đang tải...</div>
-            </div>
-        </aside>
+      <!-- Left Sidebar -->
+      <aside class="w-64 bg-white border-r border-black flex flex-col">
+        <!-- CHUNK CONFIGURATION SECTION -->
+        <div class="px-4 py-4 border-b border-black">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold text-black">Cấu hình Chunk</h2>
+            <button
+              id="resetChunkBtn"
+              class="text-xs text-gray-500 hover:text-black transition-colors"
+              title="Khôi phục mặc định (900/80)"
+            >
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                ></path>
+              </svg>
+            </button>
+          </div>
 
-        <!-- Center - Chat Area -->
-        <main class="flex-1 flex flex-col bg-white  bg-gradient-to-br from-blue-100 via-purple-50 to-pink-100">
-            <div id="messagesContainer" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
-            <div class="border-t border-black p-4">
-                <form id="chatForm" class="flex gap-3">
-                    <input type="text" id="messageInput" placeholder="Nhập câu hỏi của bạn ở đây..." 
-                           class="flex-1 px-4 py-3 rounded-xl border border-black focus:border-black focus:ring-2 focus:ring-gray-200 outline-none transition-all">
-                    <button type="submit" id="sendBtn" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                        </svg>
-                        Gửi
-                    </button>
-                </form>
+          <div class="mb-4">
+            <div class="flex justify-between text-xs text-gray-600 mb-1">
+              <span>Chunk Size</span>
+              <span id="chunkSizeValue" class="font-medium text-black"
+                >900</span
+              >
             </div>
-        </main>
+            <input
+              type="range"
+              id="chunkSizeSlider"
+              min="600"
+              max="1500"
+              step="100"
+              value="900"
+              class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            />
+            <div class="flex justify-between text-xs text-gray-400 mt-1">
+              <span>6</span><span>7</span><span>8</span><span>9</span
+              ><span>10</span> <span>11</span><span>12</span><span>13</span
+              ><span>14</span><span>15</span>
+            </div>
+          </div>
 
-        <!-- Right Sidebar - Documents -->
-        <aside class="w-72 bg-white border-l border-black flex flex-col">
-            <div class="px-4 py-4 border-b border-black">
-                <h2 class="text-sm font-semibold text-black">Tài liệu</h2>
+          <div class="mb-4">
+            <div class="flex justify-between text-xs text-gray-600 mb-1">
+              <span>Chunk Overlap</span>
+              <span id="chunkOverlapValue" class="font-medium text-black"
+                >80</span
+              >
             </div>
-            <div id="documentsList" class="flex-1 overflow-y-auto p-4 space-y-3">
-                <div id="noDocumentsMsg" class="text-center text-gray-500 text-sm py-8">Chưa có tài liệu nào</div>
+            <input
+              type="range"
+              id="chunkOverlapSlider"
+              min="50"
+              max="150"
+              step="10"
+              value="80"
+              class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            />
+            <div class="flex justify-between text-xs text-gray-400 mt-1">
+              <span>50</span><span>60</span><span>70</span><span>80</span
+              ><span>90</span> <span>100</span><span>110</span><span>120</span
+              ><span>130</span><span>140</span><span>150</span>
             </div>
-            
-            <div class="px-4 py-2 bg-yellow-50 border-t border-yellow-200">
-                <div class="flex items-start gap-2">
-                    <svg class="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <div class="text-xs text-yellow-700">
-                        <p class="font-medium">Lưu ý:</p>
-                        <p>Hệ thống chỉ hỗ trợ <strong>1 tài liệu duy nhất</strong> mỗi hội thoại.</p>
-                        <p class="text-yellow-600 mt-1">📄 Tải lên file mới sẽ <strong>thay thế</strong> file hiện tại.</p>
-                    </div>
+          </div>
+
+          <div class="relative group">
+            <button
+              id="applyChunkBtn"
+              class="w-full py-2 px-4 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm flex items-center justify-center gap-2"
+            >
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 13l4 4L19 7"
+                ></path>
+              </svg>
+              Áp dụng & Xử lý lại
+            </button>
+            <div
+              class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-2 bg-yellow-100 border border-yellow-400 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50"
+            >
+              <div class="flex items-start gap-2">
+                <svg
+                  class="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  ></path>
+                </svg>
+                <div class="text-xs text-yellow-800">
+                  <p class="font-semibold mb-1">⚠️ Lưu ý khi thay đổi:</p>
+                  <ul class="list-disc list-inside space-y-1">
+                    <li>
+                      Thay đổi sẽ <strong>xử lý lại toàn bộ tài liệu</strong>
+                    </li>
+                    <li>
+                      Chunk size càng lớn → giữ ngữ cảnh tốt hơn nhưng
+                      <strong>chậm hơn</strong>
+                    </li>
+                    <li>
+                      Chunk overlap càng lớn → tránh mất thông tin ở ranh giới
+                    </li>
+                    <li>
+                      Quá trình này có thể mất <strong>10-30 giây</strong> tùy
+                      dung lượng file
+                    </li>
+                  </ul>
                 </div>
+              </div>
+              <div
+                class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1"
+              >
+                <div
+                  class="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-yellow-400"
+                ></div>
+              </div>
             </div>
-            
-            <div class="px-4 py-4 border-t border-black space-y-2">
-                <input type="file" id="fileInput" accept=".pdf,.docx" class="hidden">
-                <button id="uploadBtn" class="w-full py-3 px-6 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-                    </svg>
-                    Tải lên tài liệu
-                </button>
-                <button id="clearDocumentBtn" class="w-full py-3 px-6 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
-                    Xóa tài liệu
-                </button>
-                <button id="clearHistoryBtn" class="w-full py-3 px-6 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    Xóa lịch sử
-                </button>
-            </div>
-        </aside>
+          </div>
+          <p
+            id="chunkStatus"
+            class="text-xs text-gray-500 mt-2 text-center hidden"
+          ></p>
+        </div>
+
+        <!-- Recent Questions Section -->
+        <div
+          class="px-4 py-4 border-b border-black flex justify-between items-center"
+        >
+          <h2 class="text-sm font-semibold text-black">Câu hỏi gần đây</h2>
+          <button
+            id="refreshQuestionsBtn"
+            class="text-xs text-gray-500 hover:text-black transition-colors"
+            title="Làm mới"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              ></path>
+            </svg>
+          </button>
+        </div>
+        <div id="questionsList" class="flex-1 overflow-y-auto p-4 space-y-2">
+          <div class="text-center text-gray-500 text-sm py-8">Đang tải...</div>
+        </div>
+      </aside>
+
+      <!-- Center - Chat Area -->
+      <main
+        class="flex-1 flex flex-col bg-white bg-gradient-to-br from-blue-100 via-purple-50 to-pink-100"
+      >
+        <div
+          id="messagesContainer"
+          class="flex-1 overflow-y-auto p-6 space-y-4"
+        ></div>
+        <div class="border-t border-black p-4">
+          <form id="chatForm" class="flex gap-3">
+            <input
+              type="text"
+              id="messageInput"
+              placeholder="Nhập câu hỏi của bạn ở đây..."
+              class="flex-1 px-4 py-3 rounded-xl border border-black focus:border-black focus:ring-2 focus:ring-gray-200 outline-none transition-all"
+            />
+            <button
+              type="submit"
+              id="sendBtn"
+              class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors flex items-center gap-2"
+            >
+              <svg
+                class="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                ></path>
+              </svg>
+              Gửi
+            </button>
+          </form>
+        </div>
+      </main>
+
+      <!-- Right Sidebar - Documents -->
+      <aside class="w-72 bg-white border-l border-black flex flex-col">
+        <div class="px-4 py-4 border-b border-black">
+          <h2 class="text-sm font-semibold text-black">Tài liệu</h2>
+        </div>
+        <div id="documentsList" class="flex-1 overflow-y-auto p-4 space-y-3">
+          <div
+            id="noDocumentsMsg"
+            class="text-center text-gray-500 text-sm py-8"
+          >
+            Chưa có tài liệu nào
+          </div>
+        </div>
+
+        <div class="px-4 py-4 border-t border-black space-y-2">
+          <input
+            type="file"
+            id="fileInput"
+            multiple
+            accept=".pdf,.docx"
+            class="hidden"
+          />
+          <button
+            id="uploadBtn"
+            class="w-full py-3 px-6 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+              ></path>
+            </svg>
+            Tải lên tài liệu
+          </button>
+          <button
+            id="clearDocumentBtn"
+            class="w-full py-3 px-6 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              ></path>
+            </svg>
+            Xóa tài liệu
+          </button>
+          <button
+            id="clearHistoryBtn"
+            class="w-full py-3 px-6 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
+            </svg>
+            Xóa lịch sử
+          </button>
+        </div>
+      </aside>
     </div>
 
     <script>
-        // Django template variables
-        const conversationId = '{{ conversation_id }}';
-        const initialMessages = {{ messages|safe }};
-        const initialDocuments = {{ documents|safe }};
+      // Django template variables
+      const conversationId = '{{ conversation_id }}';
+      const initialMessages = {{ messages|safe }};
+      const initialDocuments = {{ documents|safe }};
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath/texmath.min.js"></script>
     <script src="/static/js/chat.js"></script>
-</body>
+  </body>
 </html>

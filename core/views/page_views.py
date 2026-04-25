@@ -1,5 +1,4 @@
 from django.shortcuts import render
-import pytz
 from ..services.db_service import DatabaseService
 
 
@@ -12,16 +11,14 @@ def dashboard(request):
     """Trang dashboard - hiển thị tất cả hội thoại"""
     user = DatabaseService.get_or_create_user("User")
     conversations = DatabaseService.get_user_conversations(user)
-    ho_chi_minh_tz = pytz.timezone('Asia/Ho_Chi_Minh')
     
     chat_history = []
     for conv in conversations:
-        local_time = conv.last_updated.astimezone(ho_chi_minh_tz)
         chat_history.append({
             'id': conv.id,
             'title': conv.title,
             'preview': conv.last_question if conv.last_question else "Chưa có câu hỏi nào",
-            'time': local_time.strftime('%H:%M %d/%m/%Y'),
+            'time': conv.get_last_updated_local().strftime('%H:%M %d/%m/%Y'),
             'messages': conv.total_messages
         })
     
@@ -67,7 +64,7 @@ def chat(request, conversation_id=None):
             'id': msg.id,
             'role': msg.role,
             'content': msg.content,
-            'timestamp': msg.timestamp.strftime('%H:%M')
+            'timestamp': msg.get_timestamp_local().strftime('%H:%M')
         })
     
     # Lấy lịch sử câu hỏi
@@ -79,7 +76,7 @@ def chat(request, conversation_id=None):
         questions_data.append({
             'id': q.id,
             'question': q.question,
-            'timestamp': q.timestamp.strftime('%H:%M %d/%m')
+            'timestamp': q.get_timestamp_local().strftime('%H:%M %d/%m')
         })
     
     # Lấy danh sách documents
@@ -97,7 +94,7 @@ def chat(request, conversation_id=None):
             'size': size_str,
             'type': file_type,
             'file_ext': file_ext,
-            'uploaded_at': doc.uploaded_at.strftime('%H:%M %d/%m/%Y')
+            'uploaded_at': doc.get_uploaded_at_local().strftime('%H:%M %d/%m/%Y')
         })
     
     context = {

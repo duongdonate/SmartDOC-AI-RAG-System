@@ -1,7 +1,7 @@
 import os
 import shutil
+from django.db.models import F, IntegerField, ExpressionWrapper
 from django.conf import settings
-from django.utils import timezone
 from core.models import User, Conversation, Document, Message, QuestionHistory
 import logging
 
@@ -44,9 +44,7 @@ class DatabaseService:
         """Tạo đoạn hội thoại mới"""
         conversation = Conversation.objects.create(
             user=user,
-            title=title,
-            created_at=timezone.now(),
-            last_updated=timezone.now()
+            title=title
         )
         logger.info(f"Created new conversation: {conversation.id} - {title}")
         return conversation
@@ -61,8 +59,18 @@ class DatabaseService:
     
     @staticmethod
     def get_user_conversations(user):
-        """Lấy tất cả hội thoại của user"""
-        return Conversation.objects.filter(user=user, is_active=True)
+        """Lấy tất cả hội thoại của user có dữ liệu (messages + documents > 0)"""
+        total_activity_expr = ExpressionWrapper(
+            F('total_messages') + F('total_documents'),
+            output_field=IntegerField()
+        )
+        return (
+            Conversation.objects
+            .filter(user=user, is_active=True)
+            .annotate(total_activity=total_activity_expr)
+            .filter(total_activity__gt=0)
+            .order_by('-last_updated')
+        )
     
     @staticmethod
     def update_conversation_last_question(conversation_id, question):
@@ -70,7 +78,6 @@ class DatabaseService:
         conversation = DatabaseService.get_conversation(conversation_id)
         if conversation:
             conversation.last_question = question
-            conversation.last_updated = timezone.now()
             conversation.save()
             return True
         return False
@@ -81,7 +88,6 @@ class DatabaseService:
         conversation = DatabaseService.get_conversation(conversation_id)
         if conversation:
             conversation.total_messages += 1
-            conversation.last_updated = timezone.now()
             conversation.save()
             return True
         return False
@@ -100,13 +106,11 @@ class DatabaseService:
         message = Message.objects.create(
             conversation=conversation,
             role=role,
-            content=content,
-            timestamp=timezone.now()
+            content=content
         )
         
         # Cập nhật số lượng tin nhắn
         conversation.total_messages += 1
-        conversation.last_updated = timezone.now()
         conversation.save()
         
         return message
@@ -143,8 +147,7 @@ class DatabaseService:
             conversation=conversation,
             file_name=file_name,
             file_path=file_path,
-            file_size=file_size,
-            uploaded_at=timezone.now()
+            file_size=file_size
         )
         
         # Cập nhật số lượng tài liệu
@@ -192,8 +195,7 @@ class DatabaseService:
         
         question_history = QuestionHistory.objects.create(
             conversation=conversation,
-            question=question,
-            timestamp=timezone.now()
+            question=question
         )
         return question_history
     

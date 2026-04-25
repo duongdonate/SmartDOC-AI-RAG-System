@@ -1,5 +1,5 @@
 from .page_views import home, dashboard, chat
-from .document_views import upload_pdf, load_document, clear_document
+from .document_views import upload_document, load_document, clear_document
 from .chat_views import (
     ask_question, get_questions, add_question, 
     clear_history, check_status 

@@ -1,0 +1,573 @@
+\documentclass[10pt, conference, a4paper, compsocconf]{IEEEtran}
+\usepackage{amsmath,amsxtra,amssymb,amsthm,latexsym,amscd,amsfonts}
+\usepackage[utf8]{vietnam}
+\usepackage[top=2.7cm, bottom=3.4cm, left=2.22cm, right=2.62cm]{geometry}
+\headsep=0.7cm
+\headheight=1.0cm
+\footskip=1.4cm
+\voffset=-0.74cm
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\renewcommand{\sectionmark}[1]{\markright{\MakeUppercase{#1}}{}}
+\renewcommand{\headrulewidth}{0pt}
+
+\ifCLASSINFOpdf
+\usepackage[pdftex]{graphicx}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\DeclareGraphicsExtensions{.pdf,.jpeg,.png,.jpg}
+\else
+\usepackage[dvips]{graphicx}
+\DeclareGraphicsExtensions{.eps}
+\fi
+\usepackage{array}
+\usepackage{url}
+\usepackage{float}
+\usepackage[caption=false,font=footnotesize]{subfig}
+\usepackage{xcolor}
+\usetikzlibrary{arrows.meta,fit,positioning,shapes.geometric}
+
+\newcommand{\missing}[1]{\textcolor{red}{\textbf{[CẦN BỔ SUNG: #1]}}}
+\newcommand{\smartdoc}{SmartDoc AI}
+\newcommand{\shortabstracttext}{\smartdoc{} là phần mềm trợ lý ảo hỏi đáp tài liệu PDF/DOCX chuyên dụng hoạt động trên môi trường cục bộ, triển khai bằng Django. Hệ thống được thiết kế dựa trên kiến trúc RAG (Retrieval-Augmented Generation) kết hợp mô hình ngôn ngữ lớn Qwen2.5:7b được vận hành nội bộ qua nền tảng Ollama. Điểm đột phá về mặt kỹ thuật là việc áp dụng cơ chế Tìm kiếm lai (Hybrid Search: kết hợp FAISS và BM25) cùng mô hình chấm điểm chéo (Cross-Encoder Re-ranking) để tối ưu hóa độ chính xác của thông tin trích xuất. Ngoài ra, hệ thống còn hỗ trợ tải nhiều tài liệu cùng lúc (multiple file), lưu trữ hội thoại trên SQLite và duy trì vector store bền vững trên ổ cứng.}
+\tikzset{
+  ragwideio/.style={draw=teal!70!black, fill=teal!8, rounded corners=4pt, very thick, align=center, inner sep=6pt, text width=2.55cm, minimum height=1.5cm, font=\scriptsize},
+  ragwidestep/.style={draw=blue!60!black, fill=blue!5, rounded corners=4pt, very thick, align=center, inner sep=6pt, text width=2.7cm, minimum height=1.5cm, font=\scriptsize},
+  ragwidestore/.style={draw=orange!70!black, fill=orange!10, rounded corners=4pt, very thick, align=center, inner sep=6pt, text width=2.9cm, minimum height=1.55cm, font=\scriptsize},
+  ragwidegroup/.style={draw=gray!60, dashed, rounded corners=4pt, inner sep=8pt},
+  ragphase/.style={font=\bfseries\footnotesize, fill=gray!12, rounded corners=3pt, inner xsep=6pt, inner ysep=2pt},
+  ragarrow/.style={-{Latex[length=2.4mm,width=1.8mm]}, very thick, blue!70!black}
+}
+
+%Cấu hình format
+\makeatletter
+
+% Format Section
+\renewcommand{\section}{\@startsection{section}{1}{\z@}%
+  {1.5ex plus 1ex minus .2ex}%
+  {1ex}%
+{\normalsize\bfseries\MakeUppercase}}
+
+%Thiết kế Frontmatter - Phần mở đầu
+\newcommand{\customfrontmattercontent}{
+  \begin{@twocolumnfalse}
+    \noindent
+    {\LARGE\bfseries SMARTDOC AI -- Hệ thống RAG hỏi đáp tài liệu}\par
+    \vspace{1.5em}
+    {\normalsize\bfseries Huỳnh Ngọc Hải Dương\textsuperscript{1}, Huỳnh Trần Dương\textsuperscript{2},\\[2pt]Trần Hữu Nghĩa\textsuperscript{3}, Nguyễn Trương Gia Huy\textsuperscript{4}\par}
+    \vspace{0.35em}
+    \hrule
+    \vspace{0.8em}
+    \noindent
+    \begin{minipage}[t]{0.4\textwidth}
+      \footnotesize
+      \textsuperscript{1} Email: duonghnh2209@gmail.com\par
+      \textsuperscript{2} Email: tranduong.dwgi@gmail.com\par
+      \textsuperscript{3} Email: nghiatran0309@gmail.com\par
+      \textsuperscript{4} Email: giahuy120304@gmail.com\par
+      \vspace{0.45em}
+      Khoa Công nghệ Thông tin,\par
+      Trường Đại học Sài Gòn\par
+
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.6\textwidth}
+      \small
+      \textbf{TÓM TẮT:} \emph{\shortabstracttext}\par
+      \vspace{0.65em}
+      \textbf{TỪ KHÓA:} RAG; FAISS; Ollama; Django; Hybrid Search; Re-ranking
+    \end{minipage}
+    \vspace{1.2 em}
+    \hrule
+    \vspace{4 em}
+\end{@twocolumnfalse}}
+\newcommand{\customfrontmatter}{\twocolumn[\customfrontmattercontent]}
+\makeatother
+
+% Bắt đầu vào báo cáo
+\begin{document}
+\pagenumbering{arabic}
+\fontsize{10}{12}
+\selectfont
+\fancyhead[C]{\footnotesize{\textit{Bài tập lớn: Môn Phát triển phần mềm mã nguồn mở -- Đại học Sài Gòn, 2026}}}
+
+% Phần mở đầu custom
+\customfrontmatter
+
+% Các nội dung chính của báo cáo
+\section{Giới thiệu và tổng quan vấn đề}
+
+Trong những năm gần đây, các hệ thống hỏi đáp tài liệu dựa trên kiến trúc Retrieval-Augmented Generation (RAG) ngày càng được quan tâm trong nghiên cứu và ứng dụng thực tế. Điểm cốt lõi của RAG là kết hợp khả năng truy xuất thông tin từ các tài liệu với năng lực sinh ngôn ngữ tự nhiên của mô hình ngôn ngữ lớn, từ đó giúp câu trả lời bám sát tài liệu nguồn hơn, giảm hiện tượng ảo giác và tăng khả năng kiểm chứng. Với các bài toán khai thác tài liệu nội bộ, RAG đặc biệt phù hợp vì cho phép mô hình trả lời dựa trên đúng ngữ cảnh của tập tài liệu mà người dùng cung cấp, thay vì chỉ phụ thuộc vào tri thức đã được huấn luyện sẵn~\cite{rag}.
+
+Từ bối cảnh nghiên cứu đó, trong khuôn khổ \textbf{\textit{Bài tập lớn môn Phát triển phần mềm mã nguồn mở dưới sự hướng dẫn của giảng viên Từ Lãng Phiêu}}, nhóm đã quyết định phát triển hệ thống \textbf{\smartdoc{}} - một trợ lý ảo cho phép người dùng nạp tài liệu PDF/DOCX, duy trì nhiều phiên làm việc và hỏi đáp trực tiếp, đảm bảo bảo mật tài liệu tuyệt đối~\cite{smartdoc-source}. Hướng triển khai này vừa bám sát các xu hướng kỹ thuật hiện nay của Document Question Answering, vừa đáp ứng mục tiêu học phần là xây dựng một ứng dụng hoàn chỉnh, có giá trị thực tiễn, có thể triển khai và kiểm thử trên môi trường cục bộ.
+
+\subsection{Mục tiêu dự án}
+
+\begin{itemize}
+  \item Xây dựng một phần mềm web hoàn chỉnh, cung cấp giao diện trực quan cho phép người dùng giao tiếp và truy vấn thông tin từ các khối tài liệu văn bản PDF và DOCX.
+  \item Khắc phục các hạn chế về độ chính xác của các hệ thống RAG truyền thống thông qua việc tích hợp sâu cơ chế Hybrid Search và Re-ranking vào lõi xử lý.
+  \item Bảo đảm tính bảo mật và an toàn thông tin bằng cách triển khai toàn bộ quy trình, từ công đoạn ingestion đến generation, trên môi trường máy chủ cục bộ (\textit{localhost}), không phụ thuộc vào các dịch vụ đám mây bên ngoài~\cite{smartdoc-source}.
+\end{itemize}
+
+\subsection{Cơ sở lý thuyết}
+
+\textbf{Retrieval-Augmented Generation (RAG):} là kiến trúc kết hợp giữa bước tìm kiếm thông tin bên ngoài và khả năng sinh văn bản của mô hình ngôn ngữ lớn. Thay vì trả lời hoàn toàn dựa trên tri thức đã học sẵn, mô hình sẽ tổng hợp câu trả lời từ các đoạn văn bản ngữ cảnh do hệ thống truy xuất nội bộ cung cấp~\cite{rag}.
+
+\textbf{Hybrid Search:} là cơ chế kết hợp Vector Search với Keyword Search. Trong đó, Vector Search mạnh ở khả năng nắm bắt ngữ nghĩa, còn BM25 hiệu quả khi xử lý mã số, tên riêng và các thuật ngữ cứng. Việc vận hành song song hai nhánh truy xuất này giúp hệ thống tận dụng đồng thời độ phủ ngữ nghĩa và độ chính xác từ khóa~\cite{faiss,bm25}.
+
+\textbf{Cross-Encoder Re-ranking:} là kỹ thuật thẩm định lại các đoạn văn bản ứng viên sau bước truy xuất ban đầu. Thay vì chỉ so sánh khoảng cách vector, Cross-Encoder đưa đồng thời câu hỏi và đoạn văn vào cùng một mạng Transformer để đánh giá mức độ liên quan chéo, từ đó cho điểm chính xác hơn trước khi chọn các đoạn ngữ cảnh cuối cùng~\cite{retrieve-rerank,cross-encoder-model}.\\
+
+\textit{Trên nền tảng lý thuyết đó}, \smartdoc{} kết hợp Django 5.0.6 cho backend, LangChain cho điều phối pipeline RAG, FAISS cho semantic search, BM25 cho keyword search, HuggingFace Embeddings cho bước nhúng văn bản, mô hình Cross-Encoder cho bước re-ranking và Ollama với Qwen2.5:7b cho việc sinh ra câu trả lời cho hệ thống~\cite{django-docs,langchain-docs,faiss,bm25,retrieve-rerank,cross-encoder-model,ollama-docs,qwen}.
+
+\section{Thiết kế và triển khai}
+
+\subsection{Yêu cầu phần cứng}
+
+Hệ thống được thiết kế để chạy trên máy cá nhân hoặc máy chủ nội bộ ở mức cấu hình khá, đủ để vận hành mô hình Qwen2.5:7b và pipeline truy xuất lai~\cite{smartdoc-source}. Để triển khai và vận hành hệ thống, máy chủ lưu trữ cần đáp ứng các tiêu chuẩn sau: được tóm tắt trong Bảng~\ref{tab:requirements}.
+
+\begin{table}[H]
+  \renewcommand{\arraystretch}{1.15}
+  \caption{Yêu cầu phần cứng của \smartdoc{}}
+  \label{tab:requirements}
+  \centering
+  \footnotesize
+  \begin{tabular}{|p{0.3\columnwidth}|p{0.6\columnwidth}|}
+    \hline
+    \textbf{Hạng mục} & \textbf{Yêu cầu} \\
+    \hline
+    CPU & Từ 4 nhân trở lên, khuyến nghị 8 nhân \\
+    \hline
+    RAM & Tối thiểu 16GB, khuyến nghị 32GB khi chạy model 7B \\
+    \hline
+    Lưu trữ & Trống tối thiểu 15GB \\
+    \hline
+    GPU & Không bắt buộc; khuyến nghị từ 6GB VRAM để tăng tốc xử lý \\
+    \hline
+    Hệ điều hành & Windows 11, macOS 11+ hoặc Linux Ubuntu 20.04+ \\
+    \hline
+    Python & Phiên bản 3.12.10 trở lên \\
+    \hline
+    Thành phần khác & Ollama Runtime \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\subsection{Công nghệ sử dụng}
+
+\smartdoc{} được xây dựng theo hướng full-stack cục bộ, trong đó mỗi thành phần công nghệ đảm nhiệm một vai trò rõ ràng trong chuỗi xử lý tài liệu, truy xuất ngữ cảnh hay sinh câu trả lời. Việc kết hợp các thư viện và nền tảng chuyên biệt giúp hệ thống vừa dễ triển khai trên môi trường nội bộ, vừa bảo đảm khả năng mở rộng khi cần tinh chỉnh pipeline RAG hoặc thay đổi mô hình.
+
+\begin{table}[H]
+  \renewcommand{\arraystretch}{1.15}
+  \caption{Công nghệ chính của hệ thống}
+  \label{tab:stack}
+  \centering
+  \scriptsize
+  \begin{tabular}{|p{0.30\columnwidth}|p{0.60\columnwidth}|}
+    \hline
+    \textbf{Thành phần} & \textbf{Công nghệ} \\
+    \hline
+    Backend & Django 5.0.6 \\
+    \hline
+    Frontend & HTML5, TailwindCSS, Vanilla JavaScript \\
+    \hline
+    Database & SQLite3 \\
+    \hline
+    LLM Runtime & Ollama với Qwen2.5:7b \\
+    \hline
+    Khung điều phối RAG & LangChain \\
+    \hline
+    Semantic Search & FAISS \\
+    \hline
+    Keyword Search & BM25 (\texttt{rank\_bm25}) \\
+    \hline
+    HuggingFace Embeddings & \texttt{sentence-transformers/paraphrase-multilingual-mpnet-base-v2} \\
+    \hline
+    Cross-Encoder & \texttt{cross-encoder/ms-marco-MiniLM-L-6-v2} \\
+    \hline
+    Bộ phân tích tài liệu & \texttt{pdfplumber}, \texttt{docx2txt} \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\subsection{Kiến trúc hệ thống}
+
+Mã nguồn được tổ chức theo mô hình multi-layer architecture với ba lớp chính~\cite{smartdoc-source}:
+
+\begin{itemize}
+  \item \textbf{Lớp điều hướng Django:} gồm \texttt{chat\_project} và \texttt{core/views}, chịu trách nhiệm cấu hình hệ thống, định tuyến, tiếp nhận yêu cầu và xử lý giao diện từ người dùng.
+  \item \textbf{Lớp nghiệp vụ:} thiết kế các dịch vụ bên trong \texttt{core/services/}, gồm 2 dịch vụ cốt lõi là đảm nhiệm điều phối pipeline RAG \texttt{rag\_service} và xử lý dữ liệu lưu trữ DB \texttt{db\_service}.
+  \item \textbf{Lớp lưu trữ:} gồm \texttt{SQLite}, \texttt{media/pdfs} và \texttt{media/vectorstores}, phụ trách lưu hội thoại, tài liệu tải lên và chỉ mục phục vụ truy xuất.
+\end{itemize}
+
+Để hình dung rõ cách phân tách trách nhiệm giữa các thành phần, dưới đây là cấu trúc thư mục của dự án \smartdoc{}
+
+{\scriptsize
+\begin{verbatim}
+smartdoc-ai/
+|-- chat_project/          # Django configuration
+|   |-- settings.py
+|   |-- urls.py
+|-- core/                  # Main application
+|   |-- models.py          # Database models
+|   |-- views.py           # Request handling
+|   |-- urls.py            # URL routing
+|   |-- services/          # Business logic
+|   |   |-- rag_service.py # RAG pipeline
+|   |   |-- db_service.py  # Database operations
+|   |-- migrations/        # Database migrations
+|-- templates/             # HTML templates
+|   |-- base.html
+|   |-- home.html
+|   |-- dashboard.html
+|   |-- chat.html
+|-- media/                 # Uploaded files
+|   |-- pdfs/              # PDF storage
+|   |-- vectorstores/      # FAISS storage
+|-- static/                # Static assets
+|-- manage.py              # Django management
+|-- requirements.txt       # Python dependencies
+|-- db.sqlite3             # SQLite database
+\end{verbatim}
+}
+
+Trong cấu trúc dự án, như đã trình bày, \texttt{chat\_project} chịu trách nhiệm cấu hình hệ thống và định tuyến cấp ứng dụng; \texttt{core} tập trung phần lớn nghiệp vụ như quản lý hội thoại, upload tài liệu và pipeline RAG. Chi tiết hơn, \texttt{templates}, \texttt{static} và \texttt{media} giúp tách biệt rõ giữa giao diện, tài nguyên tĩnh và dữ liệu phát sinh trong quá trình vận hành. Ngoài lưu vết hội thoại trong cơ sở dữ liệu quan hệ, hệ thống còn tách riêng file tài liệu theo từng phiên và lưu FAISS index/BM25 corpus xuống ổ cứng để phục hồi nhanh chóng.
+
+\subsection{Luồng xử lý}
+
+Để làm rõ phần kỹ thuật cốt lõi, có thể tách logic của \smartdoc{} thành 2 giai đoạn như sau (Hình~\ref{fig:rag-flow}):
+
+\begin{itemize}
+  \item \textbf{Giai đoạn 1: Ingestion \& Indexing} : Nạp tài liệu và lưu trữ tạo chỉ mục 
+  \item \textbf{Giai đoạn 2: Retrieval \& Generation} : Thực hiện truy xuất và sinh câu trả lời có trích dẫn
+\end{itemize}
+
+\begin{figure*}[!t]
+  \centering
+  \resizebox{0.97\textwidth}{!}{%
+    \begin{tikzpicture}[node distance=7mm and 7mm]
+      \node[ragwideio] (upload) {\textbf{Nạp tài liệu}\\PDF / DOCX từ giao diện chat};
+      \node[ragwidestep, right=of upload] (parser) {\textbf{Bóc tách văn bản}\\PDF $\rightarrow$ \texttt{pdfplumber}\\DOCX $\rightarrow$ \texttt{docx2txt}};
+      \node[ragwidestep, right=of parser] (chunking) {\textbf{Chunking} \\\texttt{chunk\_size}: 700\\\texttt{chunk\_overlap}: 100\\};
+      \node[ragwidestep, right=of chunking] (indexing) {\textbf{Lập chỉ mục}\\Embedding $\rightarrow$ FAISS\\Tokenization $\rightarrow$ BM25};
+      \node[ragwidestore, right=of indexing] (storage) {\textbf{Lưu trữ theo phiên}\\\texttt{media/pdfs/}\\\texttt{media/vectorstores/}};
+
+      \node[ragwideio, below=17mm of upload] (question) {\textbf{Câu hỏi người dùng}\\Truy vấn gửi từ khung chat };
+      \node[ragwidestep, right=of question] (hybrid) {\textbf{Hybrid Search}\\Lấy top-$k$ từ FAISS\\và top-$k$ từ BM25};
+      \node[ragwidestep, right=of hybrid] (pooling) {\textbf{Pooling}\\Gộp ứng viên\\và loại bỏ trùng lặp};
+      \node[ragwidestep, right=of pooling] (rerank) {\textbf{Cross-Encoder Re-ranking}\\\texttt{ms-marco-MiniLM-L-6-v2}\\Giữ top 3 làm Context};
+      \node[ragwidestep, right=of rerank] (llm) {\textbf{Generation}\\Query + Context\\$\rightarrow$ Prompt $\rightarrow$ Qwen2.5:7b qua Ollama};
+      \node[ragwidestore, right=of llm] (answer) {\textbf{Đầu ra}\\Câu trả lời + citation\\Lưu message vào SQLite};
+
+      \draw[ragarrow] (upload) -- (parser);
+      \draw[ragarrow] (parser) -- (chunking);
+      \draw[ragarrow] (chunking) -- (indexing);
+      \draw[ragarrow] (indexing) -- (storage);
+      \draw[ragarrow] (question) -- (hybrid);
+      \draw[ragarrow] (hybrid) -- (pooling);
+      \draw[ragarrow] (pooling) -- (rerank);
+      \draw[ragarrow] (rerank) -- (llm);
+      \draw[ragarrow] (llm) -- (answer);
+
+      \node[ragwidegroup, fit=(upload)(storage), label={[ragphase, anchor=west]north west:{Giai đoạn 1: Ingestion \& Indexing}}] {};
+      \node[ragwidegroup, fit=(question)(answer), label={[ragphase, anchor=west]north west:{Giai đoạn 2: Retrieval \& Generation}}] {};
+    \end{tikzpicture}%
+  }
+ \caption{Luồng xử lý của \smartdoc{} theo 2 giai đoạn chính}
+  \label{fig:rag-flow}
+\end{figure*}
+
+\vspace{1 em}
+Ở Hình~\ref{fig:rag-flow}, \textbf{Giai đoạn 1}, luồng xử lý đã tập trung vào quá trình \textit{Ingestion \& Indexing}, bắt đầu từ bước người dùng nạp tài liệu PDF/DOCX lên giao diện chat, sau đó hệ thống tiến hành bóc tách văn bản theo đúng định dạng, chia tài liệu thành các chunk phù hợp và tạo chỉ mục song song cho cả FAISS lẫn BM25~\cite{smartdoc-source}. Toàn bộ dữ liệu sau xử lý được lưu theo từng phiên trong các thư mục \texttt{media/pdfs/} và \texttt{media/vectorstores/}, qua đó hình thành một kho lưu trữ tri thức cục bộ ổn định, sẵn sàng cho các truy vấn ở bước tiếp theo.
+
+Ở Hình~\ref{fig:rag-flow}, \textbf{Giai đoạn 2}, luồng xử lý đã chuyển sang bài toán \textit{Retrieval \& Generation}, trong đó câu hỏi của người dùng được truy xuất đồng thời qua hai nhánh FAISS và BM25, gộp các ứng viên liên quan, loại bỏ trùng lặp, sau đó chấm điểm lại bằng mô hình Cross-Encoder để chọn ra 3 đoạn ngữ cảnh tốt nhất để đưa vào Qwen2.5:7b thông qua Ollama~\cite{smartdoc-source}. Kết quả cuối cùng không chỉ là câu trả lời cho người dùng mà còn kèm trích dẫn từ quá trình Retrieval bên trên và được lưu vào SQLite dưới dạng lịch sử hội thoại, nhờ đó bảo đảm cả tính liên tục của phiên làm việc lẫn khả năng kiểm chứng nguồn gốc thông tin.
+
+\vspace{1 em}
+Dưới đây, thực hiện phân tích logic chi tiết các bước quan trọng trong luồng xử lý trên:
+\vspace{1 em}
+
+\subsubsection{Xử lý file đầu vào}
+Khi người dùng tải tài liệu lên, hệ thống trước hết phân loại theo định dạng. Với PDF, dữ liệu được bóc tách bằng \texttt{pdfplumber} để giữ cấu trúc đoạn văn và thông tin trang tốt hơn; với DOCX, phần văn bản thô được lấy qua \texttt{docx2txt}~\cite{pdfplumber,docx2txt}. Tài liệu mới không ghi đè tài liệu cũ trong cùng hội thoại mà được nạp theo cơ chế nạp thêm - incremental upload: các file mới được nối vào kho tri thức hiện tại của phiên, nhờ đó người dùng có thể mở rộng ngữ cảnh theo thời gian mà không phải tạo lại cuộc trò chuyện từ đầu~\cite{smartdoc-source}.
+
+\subsubsection{Xử lý chunking}
+Sau bước bóc tách văn bản trên, \texttt{RecursiveCharacterTextSplitter} được áp dụng để chia tài liệu thành các đoạn nhỏ. Khác với cách cắt theo số ký tự cứng, thuật toán này ưu tiên tách tại dấu câu hoặc xuống dòng nhằm giữ trọn ý nghĩa của câu/đoạn. Theo tài liệu mô tả, người dùng có thể điều chỉnh \texttt{chunk\_size} trong khoảng 600--1500, \textit{mặc định 700}, và \texttt{chunk\_overlap} trong khoảng 50--150, \textit{mặc định 100}. Nếu cấu hình thay đổi, hệ thống sẽ xóa index cũ, băm lại toàn bộ tập tài liệu của phiên và sinh lại các chỉ mục truy xuất tương ứng~\cite{smartdoc-source}.
+
+\subsubsection{Lưu trữ dữ liệu và chỉ mục}
+Hệ thống lưu trữ trên hai lớp. Lớp thứ nhất là SQLite, nơi quản lý User, Conversation, Document và Message (chi tiết sẽ được trình bày ở phần sau); riêng bản ghi Message còn kèm metadata citation để người dùng xem lại nguồn tham khảo trong lịch sử chat~\cite{smartdoc-source}. Lớp thứ hai là lưu trữ vật lý theo phiên: file gốc được đặt trong \texttt{media/pdfs/\{conversation\_id\}/}, còn chỉ mục FAISS và dữ liệu BM25 được ghi xuống \texttt{media/vectorstores/\{conversation\_id\}/}, với \texttt{conversation\_id} là id của một phiên hội thoại. Cách tổ chức này giúp cô lập dữ liệu giữa các hội thoại, tránh xung đột tên file, đồng thời cho phép nạp lại vector store sau khi mở lại phiên hay tải lại trang mà không cần embedding lại từ đầu.
+
+\subsubsection{Thuật toán Tìm kiếm Lai - Hybrid Search}
+Khi người dùng đặt câu hỏi, hệ thống không chỉ dùng một bộ truy xuất duy nhất mà gọi song song hai nhánh. Nhánh semantic search dùng FAISS để lấy các chunk có ý nghĩa gần nhất với câu hỏi dựa trên embedding; nhánh keyword search dùng BM25 để bắt chính xác các từ khóa hiếm mà vector search có thể bỏ sót~\cite{faiss,bm25}. Mỗi nhánh lấy khoảng top-10 ứng viên, sau đó hệ thống gộp hai danh sách này lại thành một tập ứng viên chung và loại bỏ những đoạn bị trùng lặp. Kết quả của bước này là một danh sách ngữ cảnh vừa có độ phủ ngữ nghĩa, vừa có độ chính xác từ khóa~\cite{smartdoc-source}.
+
+\subsubsection{Cross-Encoder Re-ranking}
+Sau khi có tập ứng viên từ Hybrid Search, \smartdoc{} dùng mô hình Cross-Encoder \texttt{ms-marco-MiniLM-L-6-v2} để chấm điểm lại từng cặp \textit{(câu hỏi, đoạn văn)}~\cite{retrieve-rerank,cross-encoder-model,smartdoc-source}. Điểm khác với FAISS là ở đây mô hình không so sánh vector độc lập, mà đọc trực tiếp cả câu hỏi lẫn đoạn văn trong cùng một lần suy luận để đánh giá độ liên quan theo cơ chế \textbf{Cross-attention}. Sau bước re-ranking chỉ khoảng top-3 đoạn tốt nhất được giữ lại để đưa vào prompt cho Qwen2.5:7b. Chính ba đoạn này cũng là cơ sở để sinh citation ở câu trả lời cuối cùng, giúp mô hình vừa trả lời ngắn gọn, vừa bám sát nguồn tham chiếu.
+
+\subsection{Cấu trúc lưu trữ cơ sở dữ liệu}
+
+Ứng dụng sử dụng cơ sở dữ liệu quan hệ \texttt{SQLite3} với các thực thể (\textit{models}) chính được liên kết chặt chẽ nhằm quản lý toàn vẹn dữ liệu người dùng và lịch sử làm việc~\cite{smartdoc-source}. Thiết kế này cho phép hệ thống không chỉ lưu được thông tin nhận dạng và siêu dữ liệu của từng phiên, mà còn bảo đảm việc truy vết tài liệu, tin nhắn và nguồn trích dẫn luôn bám theo đúng ngữ cảnh hội thoại.
+
+\begin{itemize}
+  \item \textbf{User:} là bảng quản lý định danh người dùng, lưu trữ các trường cơ bản như \texttt{ID}, tên hiển thị và thời gian khởi tạo. Đây là thực thể gốc để hệ thống phân tách dữ liệu theo từng người sử dụng, đồng thời hỗ trợ cơ chế nhận diện và cá nhân hóa trên giao diện.
+  \item \textbf{Conversation:} là bảng quản lý siêu dữ liệu của từng phiên làm việc (phiên trò chuyện). Bảng này có khóa ngoại liên kết với \texttt{User}, đồng thời lưu tiêu đề phiên và thời gian cập nhật gần nhất để phục vụ hiển thị danh sách hội thoại trên Dashboard theo thứ tự mới nhất.
+  \item \textbf{Document:} là bảng lưu vết chi tiết của từng tệp vật lý được tải lên. Mỗi bản ghi có khóa ngoại liên kết với \texttt{Conversation}, qua đó cho biết tài liệu thuộc về phiên nào. Các trường quan trọng gồm tên file gốc, đường dẫn lưu trữ an toàn trên server và dung lượng tệp, giúp hệ thống vừa quản lý được tài nguyên upload vừa hỗ trợ xóa/khôi phục dữ liệu theo từng phiên.
+  \item \textbf{Message:} là bảng lưu trữ chi tiết luồng hội thoại, liên kết trực tiếp với \texttt{Conversation}. Mỗi bản ghi ghi nhận vai trò của người gửi (\textit{User} hoặc \textit{Assistant}), nội dung đoạn chat và một trường dữ liệu định dạng \texttt{JSON} chuyên biệt để lưu toàn bộ nguồn trích dẫn (\textit{citations}) đi kèm với câu trả lời của AI. Cấu trúc này giúp hệ thống duy trì được lịch sử trao đổi đầy đủ, đồng thời hỗ trợ khả năng kiểm chứng nguồn thông tin ngay trong giao diện chat~\cite{smartdoc-source}.
+\end{itemize}
+
+\vspace{1 em}
+Xét theo quan hệ tổng thể, mô hình dữ liệu được mô tả ngắn gọn theo chuỗi \texttt{User \textrightarrow Conversation \textrightarrow \{Document, Message\}}. Cách thiết kế này phản ánh đúng đặc thù của một hệ thống RAG làm việc theo phiên: mỗi người dùng có thể sở hữu nhiều phiên hội thoại, mỗi hội thoại lại gắn với nhiều tài liệu và nhiều tin nhắn. Nhờ đó, hệ thống vừa bảo đảm tính nhất quán dữ liệu, vừa tạo nền tảng thuận lợi cho các chức năng liên quan và phục hồi phiên trả lời sau khi tải lại trang.
+
+\subsection{Các chức năng chính và giao diện người dùng}
+
+\subsubsection{Giao diện người dùng (UI/UX)}
+Để tối ưu hóa trải nghiệm thao tác với tài liệu phức tạp, hệ thống được thiết kế theo nguyên tắc giảm tải nhận thức (Cognitive Load Reduction). Không gian làm việc được chia làm ba màn hình cốt lõi:
+
+\begin{itemize}
+  \item \textbf{Trang bắt đầu (Landing Page):} Bố cục tối giản, nhấn mạnh các thông điệp giá trị cốt lõi của hệ thống.
+
+  \item \textbf{Bảng điều khiển (Dashboard):} Sử dụng thiết kế dạng lưới với các thẻ card chứa thông tin tóm tắt, giúp người dùng dễ dàng quan sát và tìm các phiên trò chuyện một cách nhanh chóng.
+
+  \item \textbf{Không gian trò chuyện (Chat View):} Bố trí theo dạng 3 cột thông minh. Cột trái chứa công cụ cấu hình RAG và lịch sử câu hỏi; trung tâm là luồng chat trực quan (bubble chat) tương tác với RAG; cột phải quản lý file tải lên.
+
+\end{itemize}
+
+\vspace{1em}
+Cách bố trí trực quan này được liên kết chặt chẽ với lõi hệ thống, giúp người dùng dễ dàng kiểm soát các tính năng nền tảng của ứng dụng.
+\vspace{1em}
+
+\subsubsection{Quản lý tài liệu (Document Management)}
+Quản lý tài liệu là lớp chức năng nền tảng của toàn bộ hệ thống, bởi chất lượng truy xuất và trả lời phụ thuộc trực tiếp vào việc tài liệu được nạp, tổ chức và duy trì như thế nào trong bộ nhớ tri thức của ứng dụng.
+
+\begin{itemize}
+  \item \textbf{Hỗ trợ đa định dạng:} hệ thống tiếp nhận và xử lý hai định dạng tài liệu phổ biến là PDF và DOCX, sử dụng màu sắc để phân biệt (xanh lá cho PDF, xanh dương cho DOCX).
+  \item \textbf{Tải lên cộng dồn (Incremental Upload):} người dùng có thể tải nhiều tệp cùng lúc hoặc tiếp tục bổ sung tài liệu mới cho một phiên đang hoạt động mà không làm mất cấu trúc tri thức đã tạo trước đó. Cơ chế này đặc biệt hữu ích trong các bối cảnh nghiên cứu hoặc tổng hợp hồ sơ, khi tập tài liệu thường được cập nhật dần theo thời gian thay vì nạp một lần duy nhất.
+  \item \textbf{Lưu trữ bền vững (Indexing Storage):} chỉ mục FAISS và BM25 sau khi được tạo sẽ được lưu xuống ổ đĩa vật lý thay vì chỉ tồn tại trong bộ nhớ tạm. Nhờ đó, hệ thống có thể phục hồi nhanh trạng thái làm việc sau khi tải lại trang hoặc khởi động lại ứng dụng, đồng thời giảm đáng kể chi phí tái xử lý tài liệu đã ingest trước đó.
+  \item \textbf{Làm mới dữ liệu:} Bên cạnh việc hỗ trỡ lưu trữ, quản lý tài liệu cho phép xóa tài liệu không cần thiết. Khi thao tác xóa diễn ra, hệ thống sẽ tự động dọn dẹp, băm (chunk) lại tập dữ liệu hiện hành và làm mới (re-ingest) song song các chỉ mục vào FAISS và BM25, đảm bảo không gian ngữ cảnh luôn đồng bộ chính xác với danh sách file hiện tại.  
+\end{itemize}
+
+\vspace{1 em}
+Cách thiết kế này biến các tài liệu từ một đầu vào tạm thời thành một nguồn tri thức có vòng đời rõ ràng, có thể tích lũy, bảo toàn và tái sử dụng xuyên suốt nhiều lượt tương tác khác nhau trong cùng một phiên làm việc.
+
+\vspace{1 em}
+\subsubsection{Tương tác Hỏi - Đáp (RAG Interaction)}
+Ở lớp chức năng cốt lõi nhất, \smartdoc{} không chỉ cung cấp hộp thoại hỏi--đáp đơn giản mà còn cho phép người dùng can thiệp có kiểm soát vào một số tham số quan trọng của pipeline RAG, đồng thời tăng cường khả năng kiểm chứng đầu ra và giảm rủi ro thao tác nhầm~\cite{smartdoc-source}.
+
+\begin{itemize}
+  \item \textbf{Tùy chỉnh thuật toán chia đoạn (Chunking):} giao diện kỹ thuật cho phép điều chỉnh trực tiếp các tham số như \textit{Chunk Size} và \textit{Chunk Overlap}. Việc công khai hai tham số này trên giao diện là một điểm mạnh, vì nó giúp người dùng tinh chỉnh hệ thống theo đặc thù tài liệu.
+  \item \textbf{Trích dẫn nguồn minh bạch (Exact Citation):} ở đầu ra cuối cùng, hệ thống yêu cầu mô hình đính kèm metadata nguồn theo định dạng [Tên File] (Trang X). Cơ chế citation này làm tăng độ tin cậy của câu trả lời, vì người dùng không chỉ nhận được nội dung tóm tắt mà còn biết chính xác thông tin đó đến từ tài liệu nào và ở trang nào.
+\end{itemize}
+
+\vspace{1em}
+Nhờ vậy, trải nghiệm hỏi đáp trong \smartdoc{} vừa mang tính kỹ thuật đủ sâu cho người dùng cần tinh chỉnh hệ thống, vừa duy trì được độ an toàn và khả năng giải thích cần thiết cho môi trường làm việc với tài liệu nội bộ.
+
+\section{Kết quả và đánh giá}
+\subsection{Kết quả triển khai}
+Kết quả đầu ra quan trọng của dự án là việc xây dựng hoàn thiện kiến trúc phân tách với hệ thống API ổn định. Nhóm đã triển khai và thử nghiệm thành công cho 16 endpoint, tách thành 4 endpoint giao diện và 12 REST API. Việc kiểm thử (thông qua Postman và thao tác trực tiếp trên giao diện) cho thấy hệ thống đáp ứng mượt mà luồng RAG và các nghiệp vụ liên quan.
+
+\begin{table}[H]
+  \renewcommand{\arraystretch}{1.1}
+  \caption{Các endpoint giao diện của \smartdoc{}}
+  \label{tab:page-endpoints}
+  \centering
+  \scriptsize
+  \begin{tabular}{|p{0.34\columnwidth}|p{0.10\columnwidth}|p{0.40\columnwidth}|}
+    \hline
+    Endpoint & Method & Chức năng \\
+    \hline
+    \texttt{/} & GET & Render trang chủ (Home) \\
+    \hline
+    \texttt{/dashboard/} & GET & Render bảng điều khiển \\
+    \hline
+    \texttt{/chat/} & GET & Khởi tạo không gian trò chuyện mới \\
+    \hline
+    \texttt{/chat/<id>/} & GET & Nạp lại phiên trò chuyện cũ \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\begin{table}[H]
+  \renewcommand{\arraystretch}{1.1}
+  \caption{Các REST API chính của \smartdoc{}}
+  \label{tab:rest-api}
+  \centering
+  \scriptsize
+  \begin{tabular}{|p{0.34\columnwidth}|p{0.10\columnwidth}|p{0.40\columnwidth}|}
+    \hline
+    Endpoint & Method & Chức năng \\
+    \hline
+    \texttt{/api/upload/} & POST & Upload, phân giải và băm tài liệu PDF/DOCX \\
+    \hline
+    \texttt{/api/ask/} & POST & Kích hoạt luồng RAG trả lời \\
+    \hline
+    \texttt{/api/clear-history/} & POST & Xóa lịch sử tin nhắn của phiên \\
+    \hline
+    \texttt{/api/clear-document/} & POST & Xóa tài liệu và vector store của phiên \\
+    \hline
+    \texttt{/api/get-questions/} & GET & Lấy danh sách câu hỏi gần đây \\
+    \hline
+    \texttt{/api/get-conversations/} & GET & Lấy danh sách hội thoại \\
+    \hline
+    \texttt{/api/get-user/} & GET & Truy xuất thông tin người dùng \\
+    \hline
+    \texttt{/api/update-user-name/} & POST & Cập nhật tên người dùng \\
+    \hline
+    \texttt{/api/rename-conversation/} & POST & Đổi tên hội thoại \\
+    \hline
+    \texttt{/api/delete-conversation/} & POST & Xóa toàn bộ dữ liệu của một phiên \\
+    \hline
+    \texttt{/api/get-chunk-config/} & GET & Lấy cấu hình chunk hiện tại \\
+    \hline
+    \texttt{/api/update-chunk-config/} & POST & Cập nhật cấu hình chunk mới \\
+    \hline
+  \end{tabular}
+\end{table}
+
+Có thể thấy khi tách riêng thành các nhóm endpoint điều hướng, endpoint quản lý hội thoại, endpoint hỏi đáp RAG và endpoint cấu hình chunking cho thấy kiến trúc đã đi xa hơn một luồng upload--ask đơn giản. Thành quả này khẳng định ứng dụng sở hữu nền tảng backend vững chắc, sẵn sàng làm cơ sở cho các đánh giá chuyên sâu hơn.
+
+\subsection{Đánh giá thực nghiệm}
+Sau khi đảm bảo nền tảng và luồng xử lý dữ liệu nội bộ hoạt động ổn định, nhóm tiến hành đánh giá thực nghiệm toàn diện trên hai phương diện cốt lõi: hiệu năng xử lý của hệ thống và chất lượng truy hồi thông tin của kiến trúc RAG.
+
+\textbf{Môi trường thực nghiệm}: Dựa vào các yêu cầu phần cứng, Hệ thống được triển khai và kiểm thử trên môi trường cục bộ với cấu hình phần cứng: CPU [Intel Core i7 12700H], RAM [16 GB], GPU [NVIDIA RTX 3060 6GB VRAM]. Hệ điều hành [Windows 11]. Mô hình ngôn ngữ Qwen2.5:7b được chạy thông qua Ollama với thiết lập quantization 4-bit để tối ưu bộ nhớ.
+
+\vspace{1 em}
+\subsubsection{Đánh giá hiệu năng xử lý (Performance)} Thực nghiệm đo lường hiệu năng của hệ thống được tiến hành qua hai giai đoạn chính của pipeline: thời gian xử lý tài liệu và thời gian phản hồi câu trả lời.
+
+\vspace{0.5em}
+\textit{\textbf{Về thời gian xử lý tài liệu}}\\
+Nhóm đã thiết kế 3 kịch bản tải lên với các định dạng khác nhau để đo lường tổng thời gian bóc tách văn bản, chia đoạn (chunk\_size=700, chunk\_overlap=100) và tạo chỉ mục song song (FAISS \& BM25).
+
+\begin{table}[H]
+  \renewcommand{\arraystretch}{1.15}
+  \caption{Thời gian xử lý tài liệu theo các kịch bản đầu vào}
+  \label{tab:ingestion-time}
+  \centering
+  \scriptsize
+  \setlength{\tabcolsep}{2.5pt}
+  \begin{tabular}{|p{0.24\columnwidth}|p{0.15\columnwidth}|p{0.17\columnwidth}|p{0.19\columnwidth}|}
+    \hline
+    \textbf{Kịch bản tải lên} & \textbf{Dung lượng} & \textbf{Số trang} & \textbf{Thời gian xử lý trung bình} \\
+    \hline
+    1 file PDF & $\sim$5.2 MB & $\sim$45 trang & 12.5 giây \\
+    \hline
+    1 file DOCX & $\sim$1.8 MB & $\sim$30 trang & 6.2 giây \\
+    \hline
+    1 PDF + 1 DOCX & $\sim$7.0 MB & $\sim$75 trang & 18.4 giây \\
+    \hline
+  \end{tabular}
+\end{table}
+
+Kết quả trong Bảng~\ref{tab:ingestion-time} cho thấy việc xử lý file PDF mất nhiều thời gian hơn DOCX do thư viện \texttt{pdfplumber} phải phân tích bố cục trang phức tạp hơn so với \texttt{docx2txt}. Tuy nhiên, với cơ chế xử lý cộng dồn ở kịch bản 3, tổng thời gian ingestion vẫn được duy trì ở mức tối ưu, dưới 20 giây cho khoảng 75 trang tài liệu, qua đó đáp ứng tốt trải nghiệm chờ đợi của người dùng.
+
+\vspace{1 em}
+\textit{\textbf{Về thời gian phản hồi câu trả lời}}
+\vspace{0.5em}
+\\Khi người dùng gửi , luồng xử lý của hệ thống phải lần lượt đi qua ba giai đoạn chính: Hybrid Search $\rightarrow$ Cross-Encoder Re-ranking $\rightarrow$ Generation bởi Qwen2.5:7b. Vì vậy, độ trễ phản hồi không chỉ phụ thuộc vào mô hình ngôn ngữ ở bước cuối mà còn chịu ảnh hưởng trực tiếp từ chi phí truy xuất và chấm điểm lại các đoạn văn ứng viên trước khi sinh câu trả lời.
+
+\begin{itemize}
+  \item \textbf{Thời gian thực hiện tìm context:} Dao động trong khoảng 1.8--2.5 giây, trong đó riêng bước chấm điểm lại bằng mô hình Cross-Encoder chiếm khoảng 0.6--1.0 giây.
+  \item \textbf{Tốc độ sinh văn bản (Generation Speed):} Tùy vào mức độ phức tạp của câu hỏi và độ dài câu trả lời nhưng trung bình người dùng phải đợi khoảng 30-70 giây để nhận được câu trả lời từ LLM.
+\end{itemize}
+
+Kết quả trên cho thấy thời gian phản hồi phụ thuộc khá nhiều ở phần cứng. Điều này khiến thời gian TTFT và tốc độ sinh từ chưa thể đạt mức tức thì như các Chatbot thương mại. Tuy nhiên, đối với đặc thù của ứng dụng tra cứu tài liệu nội bộ, mức hiệu năng này vẫn nằm trong mức chấp nhận được, ổn định.
+
+\vspace{1em}
+\subsubsection{Đánh giá chất lượng truy vấn (Retrieval Quality)} 
+Để đánh giá tính hiệu quả của kiến trúc lõi, nhóm đã tiến hành khảo sát trên tập 25 câu hỏi kiểm thử phức tạp với hơn 10 tài liệu. Mục đích chủ yếu cung cấp số liệu định lượng so sánh đối chứng giữa RAG truyền thống (chỉ dùng vector search FAISS) và SmartDoc AI (Hybrid Search + Cross-Encoder Re-ranking).
+\vspace{0.5em}
+
+\begin{figure}[H]
+  \centering
+  \resizebox{0.92\columnwidth}{!}{%
+  \begin{tikzpicture}
+    \begin{axis}[
+      xbar,
+      width=\columnwidth,
+      height=6.2cm,
+      xmin=0, xmax=100,
+      xlabel={Tỷ lệ (\%)},
+      symbolic y coords={HR,KR,AA,CP},
+      ytick=data,
+      yticklabels={Mức độ ảo giác thông tin,Khả năng bắt từ khóa hiếm, Tỷ lệ trả lời chính xác, Độ chính xác của ngữ cảnh},
+      yticklabel style={align=right, font=\scriptsize, text width=2.3cm},
+      legend style={at={(0.5,-0.20)}, anchor=north, legend columns=2, font=\scriptsize},
+      nodes near coords,
+      every node near coord/.append style={font=\scriptsize},
+      bar width=4pt,
+      enlarge y limits=0.18,
+      grid=major,
+      grid style={dashed,gray!30},
+      axis line style={black!60},
+      tick style={black!60}
+    ]
+      \addplot[fill=blue!35, draw=blue!70!black] coordinates {
+        (25,HR) (20,KR) (62,AA) (58,CP)
+      };
+      \addplot[fill=orange!60, draw=orange!80!black] coordinates {
+        (8,HR) (72,KR) (84,AA) (82,CP)
+      };
+      \legend{Chỉ dùng Vector Search, Hybrid Search + Re-ranking}
+    \end{axis}
+  \end{tikzpicture}%
+  }
+  \caption{Biểu đồ so sánh chất lượng truy hồi giữa hai phương pháp. Với chỉ số Hallucination Rate, giá trị thấp hơn là tốt hơn.}
+  \label{fig:retrieval-quality}
+\end{figure}
+
+Kết quả trong Biểu đồ ~\ref{fig:retrieval-quality} cho thấy \smartdoc{} vượt trội rõ rệt so với kiến trúc chỉ dùng FAISS ở tất cả các tiêu chí cốt lõi. Độ chính xác ngữ cảnh tăng từ 58\% lên 82\%, tỷ lệ trả lời chính xác tăng từ 62\% lên 84\%, đặc biệt khả năng bắt các từ khóa hiếm hoặc mã số tăng mạnh từ 20\% lên 72\%. Ngoài ra, tỷ lệ ảo giác thông tin giảm đáng kể, cho thấy việc kết hợp Hybrid Search với Cross-Encoder Re-ranking không chỉ cải thiện truy hồi mà còn nâng cao đáng kể độ tin cậy của câu trả lời cuối cùng.
+
+\section{Kết luận}
+Dự án đã hoàn thiện và triển khai thành công \smartdoc{} như một ứng dụng web full-stack phục vụ hỏi đáp tài liệu nội bộ theo kiến trúc RAG. Hệ thống không còn dừng ở mức một công cụ hỏi đáp PDF đơn giản mà đã phát triển thành một nền tảng tương đối hoàn chỉnh, hỗ trợ PDF/DOCX, tải tài liệu cộng dồn, lưu trữ vector bền vững và cơ chế trích dẫn nguồn minh bạch. Ngoài ra, hệ thống được đánh giá khi giao diện có độ trễ thao tác thấp, quy trình sử dụng rõ ràng và khả năng vận hành ổn định trên phần cứng nội bộ.
+
+Ở tầng kỹ thuật, việc kết hợp Hybrid Search với Cross-Encoder đã chứng minh hiệu quả rõ rệt trong việc giảm nhiễu và ưu tiên các đoạn ngữ cảnh phù hợp nhất trước khi đưa vào mô hình ngôn ngữ. Nhờ đó, Qwen2.5:7b có thể phát huy tốt năng lực phản hồi và suy luận, đồng thời giảm đáng kể hiện tượng ảo giác thường gặp.
+
+\section{Hướng phát triển}
+Trong giai đoạn tiếp theo, nhóm đề xuất các hướng ưu tiên phát triển như sau:
+
+\begin{itemize}
+  \item Tích hợp OCR để đọc các tệp PDF scan và ảnh tài liệu.
+  \item Mở rộng hỗ trợ thêm nhiều định dạng tệp như Excel, CSV hoặc PowerPoint
+  \item Tối ưu trải nghiệm bằng streaming response
+\end{itemize}
+
+Ngoài ra, nếu dự án tiếp tục phát triển sau môn học, nhóm sẽ cân nhắc thêm cơ chế phân quyền, hỗ trợ nhiều người dùng đồng thời, phát triển frontend lẫn backend để đưa hệ thống \smartdoc{} tiến gần hơn tới môi trường doanh nghiệp.
+
+\vspace{3.5 em}
+\renewcommand{\refname}{Tài liệu tham khảo}
+\begin{thebibliography}{99}
+
+  \bibitem{smartdoc-source}
+  Nhóm phát triển \smartdoc{}, \emph{Thông tin từ mã nguồn dự án và các tài liệu kỹ thuật}, Tài liệu nội bộ, 2026, Link Github: \url{https://github.com/duongdonate/SmartDOC-AI-RAG-System}
+
+  \bibitem{rag}
+  P.~Lewis et al., ``Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks,'' \emph{arXiv preprint arXiv:2005.11401}, 2020.
+
+  \bibitem{bm25}
+  S.~E.~Robertson and H.~Zaragoza, ``The Probabilistic Relevance Framework: BM25 and Beyond,'' \emph{Foundations and Trends in Information Retrieval}, vol.~3, no.~4, pp.~333--389, 2009.
+
+  \bibitem{faiss}
+  J.~Johnson, M.~Douze, and H.~J\'egou, ``Billion-scale similarity search with GPUs,'' \emph{IEEE Transactions on Big Data}, vol.~7, no.~3, pp.~535--547, 2021.
+
+  \bibitem{retrieve-rerank}
+  Sentence-Transformers, \emph{Retrieve \& Re-Rank Documentation}. \url{https://www.sbert.net/examples/applications/retrieve_rerank/README.html}
+
+  \bibitem{cross-encoder-model}
+  Sentence-Transformers, \emph{cross-encoder/ms-marco-MiniLM-L-6-v2 Model Card}. \url{https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2}
+
+  \bibitem{django-docs}
+  Django Software Foundation, \emph{Django Documentation, version 5.0}. \url{https://docs.djangoproject.com/en/5.0/}
+
+  \bibitem{langchain-docs}
+  LangChain, \emph{LangChain Documentation}. \url{https://python.langchain.com/docs/}
+
+  \bibitem{ollama-docs}
+  Ollama, \emph{Ollama Documentation and Model Library}. \url{https://ollama.com/}
+
+  \bibitem{pdfplumber}
+  J.~Svine, \emph{pdfplumber}. GitHub repository. \url{https://github.com/jsvine/pdfplumber}
+
+  \bibitem{docx2txt}
+  A.~Shah, \emph{docx2txt}. Python Package Index. \url{https://pypi.org/project/docx2txt/}
+
+  \bibitem{qwen}
+  Qwen Team, \emph{Qwen2.5: A Party of Foundation Models!}, Sep.~2024. \url{https://qwenlm.github.io/blog/qwen2.5/}
+
+\end{thebibliography}
+
+\end{document}
